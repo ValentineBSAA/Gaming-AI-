@@ -60,6 +60,9 @@ public final class TouchUi {
         s.setSmoothScrollingEnabled(true);
         s.setOverScrollMode(View.OVER_SCROLL_IF_CONTENT_SCROLLS);
         s.setFocusableInTouchMode(true);
+        if (activity instanceof HandheldActivity) {
+            ((HandheldActivity) activity).registerHandheldPage(s);
+        }
         return s;
     }
 
