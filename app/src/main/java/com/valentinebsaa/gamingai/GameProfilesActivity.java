@@ -20,7 +20,7 @@ import java.util.List;
  * Manual per-game organization. Does not search installed ROMs, scan PPSSPP,
  * infer currently running games, or create notes without user confirmation.
  */
-public final class GameProfilesActivity extends Activity {
+public final class GameProfilesActivity extends HandheldActivity {
     private static final String PREFS = "permission_locator_only";
     private static final String URI_KEY = "sd_tree_uri";
     private static final int WHITE = 0xfff6f2ff;
