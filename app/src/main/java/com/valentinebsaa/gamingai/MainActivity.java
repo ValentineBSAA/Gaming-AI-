@@ -7,6 +7,7 @@ import android.content.ActivityNotFoundException;
 import android.content.Intent;
 import android.content.res.ColorStateList;
 import android.graphics.Color;
+import android.graphics.PorterDuff;
 import android.net.Uri;
 import android.os.Bundle;
 import android.provider.DocumentsContract;
@@ -16,6 +17,9 @@ import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.CheckBox;
 import android.widget.EditText;
+import android.widget.FrameLayout;
+import android.widget.ImageView;
+import android.widget.SeekBar;
 import android.widget.LinearLayout;
 import android.widget.ScrollView;
 import android.widget.Spinner;
@@ -44,6 +48,10 @@ public final class MainActivity extends Activity {
     private Spinner game;
     private EditText note;
     private CheckBox pinned;
+    private CheckBox autoColor;
+    private TextView colorHex;
+    private final SeekBar[] rgbBars = new SeekBar[3];
+    private final ImageView[] orbPreview = new ImageView[3];
     private final int background = Color.rgb(15, 21, 35);
     private final int foreground = Color.rgb(242, 236, 244);
     private final int muted = Color.rgb(185, 176, 194);
@@ -61,7 +69,7 @@ public final class MainActivity extends Activity {
         setContentView(scroll);
 
         addText(root, "Gaming AI · Rotate", 26, foreground);
-        addText(root, "Prototype 0.1.1  •  Offline memory + status orb", 13, muted);
+        addText(root, "Prototype 0.1.2  •  Tintable grayscale orb", 13, muted);
         addText(root, "One companion, many games. Natural AI voice comes in Gate 2.", 15, foreground);
         overview = addText(root, "Choose a folder on your removable microSD.", 13, muted);
         button(root, "Choose microSD subfolder", this::chooseFolder);
@@ -69,6 +77,7 @@ public final class MainActivity extends Activity {
         addText(root, "FLOATING COMPANION", 15, foreground);
         button(root, "Show draggable orb over games", this::enableOverlay);
         button(root, "Hide companion orb", this::hideOverlay);
+        setupOrbColors(root);
         addText(root, "Optional overlay. Drag to reposition; tap it to return here. " +
             "The indicator shows the last reported app state, not live game awareness.", 12, muted);
 
@@ -183,6 +192,120 @@ public final class MainActivity extends Activity {
             .putBoolean("overlay_enabled", false).apply();
         stopService(new Intent(this, FloatingOrbService.class));
         setStatus("Overlay hidden.");
+    }
+
+    private void setupOrbColors(LinearLayout root) {
+        addText(root, "COLOR YOUR COMPANION", 15, foreground);
+        FrameLayout preview = new FrameLayout(this);
+        LinearLayout.LayoutParams frame = new LinearLayout.LayoutParams(dp(88), dp(88));
+        frame.bottomMargin = dp(5);
+        root.addView(preview, frame);
+        int[] images = {R.drawable.orb_core, R.drawable.orb_petals, R.drawable.orb_ring};
+        for (int i = 0; i < images.length; i++) {
+            ImageView layer = new ImageView(this);
+            layer.setImageResource(images[i]);
+            layer.setScaleType(ImageView.ScaleType.FIT_CENTER);
+            preview.addView(layer, new FrameLayout.LayoutParams(-1, -1));
+            orbPreview[i] = layer;
+        }
+        colorHex = addText(root, "", 13, foreground);
+        int initial = getSharedPreferences(OrbPalette.PREFS, MODE_PRIVATE)
+            .getInt(OrbPalette.COLOR_KEY, OrbPalette.DEFAULT_COLOR);
+
+        autoColor = new CheckBox(this);
+        autoColor.setText("Automatic status colors");
+        autoColor.setTextColor(foreground);
+        autoColor.setChecked(getSharedPreferences(OrbPalette.PREFS, MODE_PRIVATE)
+            .getBoolean(OrbPalette.AUTO_KEY, false));
+        root.addView(autoColor);
+        addText(root, "Automatic uses real app status today; AI-chosen colors will come later.",
+            12, muted);
+
+        String[] names = {"Red", "Green", "Blue"};
+        int[] levels = {(initial >> 16) & 255, (initial >> 8) & 255, initial & 255};
+        for (int i = 0; i < 3; i++) {
+            addText(root, names[i], 12, muted);
+            SeekBar bar = new SeekBar(this);
+            bar.setMax(255);
+            bar.setProgress(levels[i]);
+            rgbBars[i] = bar;
+            root.addView(bar, new LinearLayout.LayoutParams(-1, dp(36)));
+            bar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
+                @Override public void onProgressChanged(SeekBar seek, int value, boolean user) {
+                    renderColorPreview();
+                }
+                @Override public void onStartTrackingTouch(SeekBar seek) {}
+                @Override public void onStopTrackingTouch(SeekBar seek) {
+                    if (autoColor.isChecked()) autoColor.setChecked(false);
+                    saveColorAndRefreshOrb();
+                }
+            });
+        }
+
+        LinearLayout choices = new LinearLayout(this);
+        choices.setOrientation(LinearLayout.HORIZONTAL);
+        root.addView(choices, new LinearLayout.LayoutParams(-1, -2));
+        int[] presets = {0xffb997e8, 0xffff91bd, 0xff71dece, 0xffffffff};
+        String[] labels = {"Violet", "Rose", "Teal", "White"};
+        for (int i = 0; i < presets.length; i++) {
+            int selected = presets[i];
+            Button preset = new Button(this);
+            preset.setText(labels[i]);
+            preset.setAllCaps(false);
+            preset.setTextSize(11);
+            preset.setTextColor(foreground);
+            preset.setBackgroundTintList(ColorStateList.valueOf(0xff512c53));
+            choices.addView(preset, new LinearLayout.LayoutParams(0, dp(48), 1));
+            preset.setOnClickListener(v -> {
+                autoColor.setChecked(false);
+                rgbBars[0].setProgress((selected >> 16) & 255);
+                rgbBars[1].setProgress((selected >> 8) & 255);
+                rgbBars[2].setProgress(selected & 255);
+                saveColorAndRefreshOrb();
+            });
+        }
+        autoColor.setOnCheckedChangeListener((control, enabled) -> {
+            for (SeekBar bar : rgbBars) bar.setEnabled(!enabled);
+            saveColorAndRefreshOrb();
+        });
+        for (SeekBar bar : rgbBars) bar.setEnabled(!autoColor.isChecked());
+        renderColorPreview();
+    }
+
+    private int customOrbColor() {
+        return 0xff000000 | (rgbBars[0].getProgress() << 16)
+            | (rgbBars[1].getProgress() << 8) | rgbBars[2].getProgress();
+    }
+
+    private void renderColorPreview() {
+        if (rgbBars[2] == null || colorHex == null) return;
+        int chosen = customOrbColor();
+        boolean automatic = autoColor != null && autoColor.isChecked();
+        int tint = OrbPalette.resolve(automatic, chosen, "IDLE");
+        for (ImageView layer : orbPreview) {
+            if (layer != null) layer.setColorFilter(tint, PorterDuff.Mode.MULTIPLY);
+        }
+        colorHex.setText(String.format(java.util.Locale.US, "#%06X  •  %s",
+            chosen & 0x00ffffff, automatic ? "Automatic (idle preview)" : "Custom"));
+    }
+
+    private void saveColorAndRefreshOrb() {
+        if (rgbBars[2] == null) return;
+        getSharedPreferences(OrbPalette.PREFS, MODE_PRIVATE).edit()
+            .putInt(OrbPalette.COLOR_KEY, customOrbColor())
+            .putBoolean(OrbPalette.AUTO_KEY, autoColor.isChecked()).apply();
+        renderColorPreview();
+        if (getSharedPreferences(PREFS, MODE_PRIVATE).getBoolean("overlay_enabled", false)
+                && Settings.canDrawOverlays(this)) {
+            Intent theme = new Intent(this, FloatingOrbService.class);
+            theme.setAction(FloatingOrbService.ACTION_THEME);
+            try {
+                if (Build.VERSION.SDK_INT >= 26) startForegroundService(theme);
+                else startService(theme);
+            } catch (Exception ignored) {
+                // On background-service restriction, the next manual Show refreshes colors.
+            }
+        }
     }
 
     private void chooseFolder(View v) {
