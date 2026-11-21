@@ -127,6 +127,18 @@ PY
 }
 
 open_quick_tile "Memories" "memory_library_720_density320_font130"
+adb shell input keyevent 97
+sleep 2
+capture "back_button_from_memories_720_density320_font130"
+python3 - <<'PY'
+from xml.etree import ElementTree
+root = ElementTree.parse(
+    "square-evidence/back_button_from_memories_720_density320_font130.xml").getroot()
+texts = [x.get("text", "") for x in root.iter("node")]
+assert any("Gaming AI" in t for t in texts), "FAIL: controller B didn't return to dashboard"
+print("PASS: emulator KEYCODE_BUTTON_B returns to dashboard")
+PY
+
 open_quick_tile "Game Profiles" "game_profiles_720_density320_font130"
 open_quick_tile "First-day Setup" "first_day_setup_720_density320_font130"
 
@@ -158,6 +170,28 @@ root = ElementTree.parse("square-evidence/main_720_density400_font150.xml").getr
 texts = [x.get("text","") for x in root.iter("node")]
 assert any("Gaming AI" in x for x in texts), "FAIL: main dashboard missing after scaling"
 print("PASS: scaled square dashboard exposes title")
+PY
+
+# Larger accessibility font sanity pass. Layout must stay scrollable without crash.
+adb shell am force-stop com.valentinebsaa.gamingai
+adb shell settings put system font_scale 2.0
+adb shell am start -W -n com.valentinebsaa.gamingai/.MainActivity
+sleep 3
+capture "main_720_density400_font200"
+adb shell input keyevent 103
+sleep 1
+capture "main_after_R1_page_720_density400_font200"
+adb shell input keyevent 102
+sleep 1
+python3 - <<'PY'
+from xml.etree import ElementTree
+root = ElementTree.parse(
+    "square-evidence/main_720_density400_font200.xml").getroot()
+texts = [x.get("text", "") for x in root.iter("node")]
+assert any("Gaming AI" in t for t in texts), (
+    "FAIL: main dashboard unavailable at 200% font size"
+)
+print("PASS: 720 square 200% font launch + shoulder paging input")
 PY
 
 adb shell wm size > square-evidence/virtual_screen.txt
