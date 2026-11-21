@@ -35,10 +35,6 @@ public final class MainActivity extends Activity {
     private static final int PICK_SD_FOLDER = 10;
     private static final String PREFS = "permission_locator_only";
     private static final String KEY_URI = "sd_tree_uri";
-    private static final String[] GAMES = {
-        "General", "Midnight Club 3: DUB Edition", "Midnight Club: LA Remix", "The 3rd Birthday"
-    };
-
     private TextView status;
     private TextView overview;
     private TextView deviceInfo;
@@ -63,7 +59,7 @@ public final class MainActivity extends Activity {
         mainScroll.requestFocus();
 
         TouchUi.header(this, root, "Gaming AI", "ROTATE • OFFLINE COMPANION");
-        addText(root, "v0.1.6  •  Your private gaming companion, ready for its first device test.",
+        addText(root, "v0.1.7  •  Custom microSD game profiles and offline voice preview.",
             13, muted);
 
         LinearLayout shortcuts = new LinearLayout(this);
@@ -106,7 +102,7 @@ public final class MainActivity extends Activity {
         addText(memoryCard, "SAVE A MEMORY", 15, foreground);
         game = new Spinner(this);
         ArrayAdapter<String> adapter = new ArrayAdapter<>(this,
-            android.R.layout.simple_spinner_item, GAMES);
+            android.R.layout.simple_spinner_item, GameProfilePolicy.defaults());
         adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
         game.setAdapter(adapter);
         game.setBackgroundTintList(ColorStateList.valueOf(Color.rgb(219, 159, 196)));
@@ -137,6 +133,8 @@ public final class MainActivity extends Activity {
         button(memoryCard, "Refresh saved memories", this::refresh);
         button(memoryCard, "Open Memory Library · edit, pin, backup", v ->
             startActivity(new Intent(this, MemoryLibraryActivity.class)));
+        button(memoryCard, "Manage Game Profiles · add your own games", v ->
+            startActivity(new Intent(this, GameProfilesActivity.class)));
         status = addText(memoryCard, "No recording occurs on this screen. "
             + "Voice Lab's microphone activates only when requested.", 13, muted);
         addText(memoryCard, "RECENT MEMORIES", 15, foreground);
@@ -165,6 +163,7 @@ public final class MainActivity extends Activity {
             + "Selected microSD folder URI and interface choices are kept in Android settings.",
             12, muted);
         refreshDiagnostics();
+        reloadGameSelector();
         refresh();
         TouchUi.reveal(this, root);
     }
@@ -369,6 +368,31 @@ public final class MainActivity extends Activity {
         startActivity(launch);
     }
 
+    /** Rebuild the game selector from the microSD catalog and existing memory titles. */
+    private void reloadGameSelector() {
+        if (game == null) return;
+        String previous = game.getSelectedItem() == null ? "General"
+            : String.valueOf(game.getSelectedItem());
+        List<String> available = GameProfilePolicy.defaults();
+        try {
+            String raw = getSharedPreferences(PREFS, MODE_PRIVATE).getString(KEY_URI, null);
+            if (raw != null) {
+                Uri uri = Uri.parse(raw);
+                List<String> custom = new GameProfileStore(this, uri).load();
+                List<MemoryRecord> notes = new MemoryStore(this, uri).load();
+                available = GameProfilePolicy.allGames(custom, notes);
+            }
+        } catch (Exception unavailable) {
+            // An inaccessible microSD must not prevent the main UI from opening.
+        }
+        ArrayAdapter<String> adapter = new ArrayAdapter<>(this,
+            android.R.layout.simple_spinner_item, available);
+        adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+        game.setAdapter(adapter);
+        int selected = available.indexOf(previous);
+        game.setSelection(selected < 0 ? 0 : selected);
+    }
+
     private void refreshDiagnostics() {
         if (deviceInfo == null) return;
         android.util.DisplayMetrics display = new android.util.DisplayMetrics();
@@ -411,6 +435,7 @@ public final class MainActivity extends Activity {
                 new MemoryStore(this, uri).selfTest();
                 getSharedPreferences(PREFS, MODE_PRIVATE).edit().putString(KEY_URI, uri.toString()).apply();
                 setStatus("Verified removable SD folder and temporary file cleanup.");
+                reloadGameSelector();
                 refresh();
             } catch (Exception e) { setStatus("Folder rejected: " + e.getMessage()); }
         }
@@ -431,7 +456,7 @@ public final class MainActivity extends Activity {
             MemoryStore storage = store();
             List<MemoryRecord> records = storage.load();
             records.add(new MemoryRecord(UUID.randomUUID().toString(),
-                    System.currentTimeMillis(), GAMES[game.getSelectedItemPosition()],
+                    System.currentTimeMillis(), String.valueOf(game.getSelectedItem()),
                     value, pinned.isChecked()));
             storage.save(records);
             note.setText("");
@@ -456,7 +481,10 @@ public final class MainActivity extends Activity {
 
     @Override protected void onResume() {
         super.onResume();
-        if (overview != null && recent != null) refresh();
+        if (overview != null && recent != null) {
+            reloadGameSelector();
+            refresh();
+        }
     }
 
     private void refresh(View ignored) { refresh(); }

@@ -1,8 +1,8 @@
 # Gaming AI · RG Rotate companion
 
-**Prototype v0.1.6 source** for the Anbernic RG Rotate (Android 12, 720×720 display). This is the start of a single-personality voice-first gaming companion, not yet the complete AI. See [the gated roadmap](docs/ROADMAP.md) for acceptance tests and later features.
+**Prototype v0.1.7 source** for the Anbernic RG Rotate (Android 12, 720×720 display). This is the start of a single-personality voice-first gaming companion, not yet the complete AI. See [the gated roadmap](docs/ROADMAP.md) for acceptance tests and later features.
 
-## Implemented in v0.1.6
+## Implemented in v0.1.7
 
 - Square-screen touch interface for tagged notes about **Midnight Club 3: DUB Edition**, **Midnight Club: LA Remix**, **The 3rd Birthday**, and general conversations.
 - SAF picker for an **existing subfolder on a removable microSD**; persist the folder permission. Reject internal/cloud selections and fail closed if SD is unavailable.
@@ -35,7 +35,7 @@ The unsigned-for-distribution debug APK is uploaded to the **Android debug APK**
 
 - Android normally installs APKs and keeps OS permissions/preferences internally. **Persistent note contents go on the microSD**, but not literally *every byte* of this Android app.
 - Android 11+ commonly blocks the root of an SD volume in the folder picker; select a dedicated subfolder.
-- v0.1.6 does **not** capture gameplay, delete screenshots from other apps, know what game is running, launch games, converse using generative AI, or speak while another app is foregrounded. Those are separately gated features, not claims of an existing app.
+- v0.1.7 does **not** capture gameplay, delete screenshots from other apps, know what game is running, launch games, converse using generative AI, or speak while another app is foregrounded. Those are separately gated features, not claims of an existing app.
 - Some SD providers may expose unusual document IDs, in which case the conservative removable-card check rejects them. That case must be investigated on actual RG Rotate hardware before relaxing protection.
 - Not verified on physical hardware or compiled locally. CI and hardware tests are required before declaring any gate passed.
 
@@ -53,16 +53,23 @@ See [palette details](docs/ORB_PALETTE.md) and [test checklist](docs/OVERLAY_TES
 Open **Voice Lab** from the main app. Preview installed offline English Android voices, change the voice, speed and pitch, mute or stop, and test typed scripted replies. On-device microphone is optional and **only appears if the installed Android 12 recognition service supports it**. No automatic cloud fallback. This does not promise a natural feminine voice, background conversation or an AI model. See [voice QA and test plan](docs/VOICE_LAB_TESTS.md).
 
 
-## Guided offline voices (v0.1.6)
+## Guided offline voices (v0.1.7)
 
 Open **Voice Lab & offline voice guide**. The four-step wizard checks Android's TTS voice data, opens the engine's own optional voice-pack installer, offers Android TTS Settings (with accessibility fallback), and refreshes the catalog on return. None of those actions silently installs software; Android or the speech-engine app controls approval, network usage and downloads. The catalog filters US/UK/other English/offline favorites, reports the engine's **claimed** quality, and lets you audition/save favorite voices. An engine's offline flag does not prove voice data is downloaded: **test in Airplane mode**. If no engine or compatible Settings shortcut exists, the app explains how to navigate manually. This is still a scripted/no-credits offline demo, not a generative conversational AI. See [Voice Lab tests](docs/VOICE_LAB_TESTS.md).
 
 
-## v0.1.6 RG Rotate square touchscreen readiness
+## v0.1.7 RG Rotate square touchscreen readiness
 
 A scrollable, card-based interface with swipeable shortcut chips, bounded scrollable touch voice selection, wrapped names, horizontal orb presets, native button ripples and 52dp minimum touch controls. The Device Readiness panel shows usable screen dp and actual physical pixel dimensions. Reduce Motion is available. To avoid an unintended online speech recognizer, main-screen generic note dictation now opens the on-device-only Voice Lab; typed SD note entry is preserved. The UI is designed for **720 × 720 physical pixels** with varying display density, not a fixed 720dp assumption. Automated CI and layout policies are not visual device testing. [Touchscreen QA and first-day hardware checklist](docs/SQUARE_TOUCHSCREEN_TESTS.md).
 
 
-## v0.1.6 Premium UI + Memory Library
+## v0.1.7 Premium UI + Memory Library
 
 Midnight-gradient native Android styling, softly glass-shaded cards, shared three-layer orb headers, restrained violet actions and teal labels, and consistent swipe/scroll navigation across the dashboard, Voice Lab and new Memory Library. No expensive real-time blur or background animation. The Memory Library provides search, per-game filters, edit, pin/unpin, delete confirmation and an explicit JSON backup/restore preview and confirmation flow. Backups remain **plaintext on the selected microSD**, not an external disaster-recovery copy. The generic screen-capture and cloud AI functions are still not present. [Design and first-day QA](docs/PREMIUM_UI_SPEC.md). UI fidelity requires emulator/device visual inspection; compilation alone is insufficient.
+
+
+## v0.1.7 microSD Game Profiles
+
+Choose **Manage Game Profiles** from the main dashboard to add custom game titles for PSP, PS1, PS2, GameCube or other games. No ROM scanning or automatic game identification. Only a manual list of titles is stored in two alternating **game-profiles-a/b.json** snapshots in the same SAF-selected removable microSD folder as your notes. The original three game names and General remain available. Existing memories' game names reappear even without a profile index. The game picker, Voice Lab context and Memory Library filters use these titles. Empty custom profiles can be removed with confirmation; profiles with notes and the four starter entries cannot be removed. **Memory Library's current JSON backup covers memory notes only; the separate profile index requires its own off-card copy for disaster recovery.** No hidden cloud sync, screenshots, generative AI, app monitoring, or subscription.
+
+See [game profile testing and future readiness plan](docs/GAME_PROFILES_TESTS.md). The pretty simulated concept screens in chat show visual design intent, not verified UI screenshots or proof of AI abilities.

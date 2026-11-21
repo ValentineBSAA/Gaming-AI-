@@ -32,10 +32,6 @@ public final class MemoryLibraryActivity extends Activity {
     private static final int PICK_BACKUP = 34;
     private static final int TEXT = Color.rgb(242, 236, 244);
     private static final int MUTED = Color.rgb(185, 176, 194);
-    private static final String[] FILTERS = {
-        "All games", "General", "Midnight Club 3: DUB Edition",
-        "Midnight Club: LA Remix", "The 3rd Birthday"
-    };
     private TextView status;
     private TextView count;
     private TextView details;
@@ -69,8 +65,11 @@ public final class MemoryLibraryActivity extends Activity {
         search.setMinHeight(dp(52));
         browseCard.addView(search);
         gameFilter = new Spinner(this);
+        ArrayList<String> initialFilters = new ArrayList<>();
+        initialFilters.add("All games");
+        initialFilters.addAll(GameProfilePolicy.defaults());
         ArrayAdapter<String> filterAdapter = new ArrayAdapter<>(this,
-            android.R.layout.simple_spinner_item, FILTERS);
+            android.R.layout.simple_spinner_item, initialFilters);
         filterAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
         gameFilter.setAdapter(filterAdapter);
         browseCard.addView(gameFilter, new LinearLayout.LayoutParams(-1, dp(56)));
@@ -113,11 +112,11 @@ public final class MemoryLibraryActivity extends Activity {
 
         LinearLayout backup = TouchUi.card(this, root);
         addText(backup, "BACKUP AND RESTORE", 15, TEXT);
-        addText(backup, "Backups are plaintext JSON and can include private information. "
+        addText(backup, "These backups contain memory notes, not the separate custom-game index. Plaintext JSON may include private information. "
             + "Keep them safe. A backup on this same microSD does not protect against card loss.",
             12, MUTED);
-        TouchUi.button(this, backup, "Create backup on selected microSD", v -> confirmBackup());
-        TouchUi.button(this, backup, "Preview and restore JSON", v -> chooseBackup());
+        TouchUi.button(this, backup, "Back up memory notes on microSD", v -> confirmBackup());
+        TouchUi.button(this, backup, "Preview and restore memory notes", v -> chooseBackup());
         addText(backup, "Restoring replaces current memories only after a separate confirmation. "
             + "Previewing a file never changes anything.", 12, MUTED);
         TouchUi.button(this, root, "Back to Gaming AI", v -> finish());
@@ -211,6 +210,7 @@ public final class MemoryLibraryActivity extends Activity {
     private void reload() {
         try {
             originals = store().load();
+            refreshGameFilters();
             filterList();
             show("Loaded " + originals.size() + " verified memories from microSD.");
         } catch (Exception problem) {
@@ -219,6 +219,31 @@ public final class MemoryLibraryActivity extends Activity {
             filterList();
             show("Cannot read microSD memories: " + problem.getMessage());
         }
+    }
+
+    private void refreshGameFilters() {
+        String old = gameFilter.getSelectedItem() == null ? "All games"
+            : String.valueOf(gameFilter.getSelectedItem());
+        ArrayList<String> filters = new ArrayList<>();
+        filters.add("All games");
+        try {
+            String raw = getSharedPreferences(PREFS, MODE_PRIVATE).getString(URI_KEY, null);
+            if (raw != null) {
+                List<String> custom = new GameProfileStore(this, Uri.parse(raw)).load();
+                filters.addAll(GameProfilePolicy.allGames(custom, originals));
+            } else {
+                filters.addAll(GameProfilePolicy.allGames(
+                    new ArrayList<>(), originals));
+            }
+        } catch (Exception unavailable) {
+            filters.addAll(GameProfilePolicy.allGames(new ArrayList<>(), originals));
+        }
+        ArrayAdapter<String> adapter = new ArrayAdapter<>(this,
+            android.R.layout.simple_spinner_item, filters);
+        adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+        gameFilter.setAdapter(adapter);
+        int oldIndex = filters.indexOf(old);
+        gameFilter.setSelection(oldIndex < 0 ? 0 : oldIndex);
     }
 
     private void apply(List<MemoryRecord> updated, String success) {
