@@ -11,7 +11,6 @@ import android.graphics.PorterDuff;
 import android.net.Uri;
 import android.os.Bundle;
 import android.provider.DocumentsContract;
-import android.speech.RecognizerIntent;
 import android.view.View;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
@@ -27,7 +26,6 @@ import android.widget.TextView;
 
 import java.io.IOException;
 import java.text.DateFormat;
-import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 import java.util.UUID;
@@ -35,7 +33,6 @@ import java.util.UUID;
 /** Offline v0.1 memory-shell UI. Does not pretend to be a live AI voice service. */
 public final class MainActivity extends Activity {
     private static final int PICK_SD_FOLDER = 10;
-    private static final int DICTATE_NOTE = 11;
     private static final String PREFS = "permission_locator_only";
     private static final String KEY_URI = "sd_tree_uri";
     private static final String[] GAMES = {
@@ -44,6 +41,8 @@ public final class MainActivity extends Activity {
 
     private TextView status;
     private TextView overview;
+    private TextView deviceInfo;
+    private ScrollView mainScroll;
     private TextView recent;
     private Spinner game;
     private EditText note;
@@ -58,45 +57,62 @@ public final class MainActivity extends Activity {
 
     @Override public void onCreate(Bundle state) {
         super.onCreate(state);
-        ScrollView scroll = new ScrollView(this);
-        scroll.setFillViewport(true);
-        scroll.setBackgroundColor(background);
-        LinearLayout root = new LinearLayout(this);
-        root.setOrientation(LinearLayout.VERTICAL);
-        int pad = dp(18);
-        root.setPadding(pad, pad, pad, pad);
-        scroll.addView(root);
-        setContentView(scroll);
+        mainScroll = TouchUi.page(this);
+        LinearLayout root = TouchUi.root(this, mainScroll);
+        setContentView(mainScroll);
+        mainScroll.requestFocus();
 
         addText(root, "Gaming AI · Rotate", 26, foreground);
-        addText(root, "Prototype 0.1.4  •  Guided voice setup + tintable orb", 13, muted);
-        addText(root, "One companion, many games. Try free offline voice tests; full AI comes later.", 15, foreground);
-        button(root, "Open Voice Lab & offline voice guide", v -> {
-            Intent voiceLab = new Intent(this, VoiceLabActivity.class);
-            voiceLab.putExtra(VoiceLabActivity.EXTRA_GAME,
-                game != null ? String.valueOf(game.getSelectedItem()) : "General");
-            startActivity(voiceLab);
-        });
-        addText(root, "Voice Lab only speaks when asked. Built-in Android voices vary in quality; no Piper or subscription.",
-            12, muted);
-        overview = addText(root, "Choose a folder on your removable microSD.", 13, muted);
-        button(root, "Choose microSD subfolder", this::chooseFolder);
-        button(root, "Test SD write / read / delete", this::testSd);
-        addText(root, "FLOATING COMPANION", 15, foreground);
-        button(root, "Show draggable orb over games", this::enableOverlay);
-        button(root, "Hide companion orb", this::hideOverlay);
-        setupOrbColors(root);
-        addText(root, "Optional overlay. Drag to reposition; tap it to return here. " +
-            "The indicator shows the last reported app state, not live game awareness.", 12, muted);
+        addText(root, "Prototype 0.1.5  •  Square touchscreen polish", 13, muted);
+        addText(root, "One companion, many games. Free offline Voice Lab; full AI comes later.",
+            15, foreground);
 
-        addText(root, "SAVE A MEMORY", 15, foreground);
+        LinearLayout shortcuts = new LinearLayout(this);
+        shortcuts.setOrientation(LinearLayout.HORIZONTAL);
+        TouchUi.rail(this, root).addView(shortcuts);
+
+        final LinearLayout voiceCard = TouchUi.card(this, root);
+        final LinearLayout storageCard = TouchUi.card(this, root);
+        final LinearLayout orbCard = TouchUi.card(this, root);
+        final LinearLayout memoryCard = TouchUi.card(this, root);
+        final LinearLayout deviceCard = TouchUi.card(this, root);
+        TouchUi.chip(this, shortcuts, "Voice",
+            v -> TouchUi.jumpTo(this, mainScroll, voiceCard));
+        TouchUi.chip(this, shortcuts, "microSD",
+            v -> TouchUi.jumpTo(this, mainScroll, storageCard));
+        TouchUi.chip(this, shortcuts, "Orb",
+            v -> TouchUi.jumpTo(this, mainScroll, orbCard));
+        TouchUi.chip(this, shortcuts, "Memories",
+            v -> TouchUi.jumpTo(this, mainScroll, memoryCard));
+        TouchUi.chip(this, shortcuts, "Device",
+            v -> TouchUi.jumpTo(this, mainScroll, deviceCard));
+
+        addText(voiceCard, "OFFLINE VOICE LAB", 15, foreground);
+        button(voiceCard, "Open Voice Lab & offline voice guide", v -> openVoiceLab());
+        addText(voiceCard, "Voice Lab only speaks when asked. No Piper or paid subscription. "
+            + "Available voices depend on your Android installation.", 12, muted);
+
+        addText(storageCard, "MICROSD MEMORY", 15, foreground);
+        overview = addText(storageCard, "Choose a folder on your removable microSD.", 13, muted);
+        button(storageCard, "Choose microSD subfolder", this::chooseFolder);
+        button(storageCard, "Test SD write / read / delete", this::testSd);
+
+        addText(orbCard, "FLOATING COMPANION", 15, foreground);
+        button(orbCard, "Show draggable orb over games", this::enableOverlay);
+        button(orbCard, "Hide companion orb", this::hideOverlay);
+        setupOrbColors(orbCard);
+        addText(orbCard, "Optional overlay. Drag to reposition and tap to return here. "
+            + "The indicator reports the app's last state, not game awareness.", 12, muted);
+
+        addText(memoryCard, "SAVE A MEMORY", 15, foreground);
         game = new Spinner(this);
         ArrayAdapter<String> adapter = new ArrayAdapter<>(this,
-                android.R.layout.simple_spinner_item, GAMES);
+            android.R.layout.simple_spinner_item, GAMES);
         adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
         game.setAdapter(adapter);
         game.setBackgroundTintList(ColorStateList.valueOf(Color.rgb(219, 159, 196)));
-        root.addView(game);
+        game.setMinimumHeight(dp(54));
+        memoryCard.addView(game, new LinearLayout.LayoutParams(-1, dp(58)));
 
         note = new EditText(this);
         note.setHint("What should the companion remember?");
@@ -108,23 +124,48 @@ public final class MainActivity extends Activity {
         note.setInputType(android.text.InputType.TYPE_CLASS_TEXT |
             android.text.InputType.TYPE_TEXT_FLAG_MULTI_LINE |
             android.text.InputType.TYPE_TEXT_FLAG_CAP_SENTENCES);
-        root.addView(note);
+        memoryCard.addView(note);
 
         pinned = new CheckBox(this);
         pinned.setText("Protect this memory from compaction");
         pinned.setTextColor(foreground);
-        root.addView(pinned);
+        pinned.setMinHeight(dp(48));
+        memoryCard.addView(pinned);
 
-        button(root, "Save memory to SD", this::saveNote);
-        button(root, "Dictate note (Android speech input)", this::dictate);
-        button(root, "Compact unpinned memories", this::compact);
-        button(root, "Refresh saved memories", this::refresh);
-        status = addText(root, "Voice Lab uses the microphone only when you tap push-to-talk; no background recording or screen capture.", 13, muted);
-        addText(root, "RECENT MEMORIES", 15, foreground);
-        recent = addText(root, "Nothing loaded yet.", 13, foreground);
-        addText(root, "Privacy: no network permission, screenshots, account, or API keys. " +
-            "Only the selected folder URI is kept internally by Android.", 12, muted);
+        button(memoryCard, "Save memory to SD", this::saveNote);
+        button(memoryCard, "Offline push-to-talk · Open Voice Lab", v -> openVoiceLab());
+        button(memoryCard, "Compact unpinned memories", this::compact);
+        button(memoryCard, "Refresh saved memories", this::refresh);
+        status = addText(memoryCard, "No recording occurs on this screen. "
+            + "Voice Lab's microphone activates only when requested.", 13, muted);
+        addText(memoryCard, "RECENT MEMORIES", 15, foreground);
+        recent = addText(memoryCard, "Nothing loaded yet.", 13, foreground);
+
+        addText(deviceCard, "DEVICE READINESS", 15, foreground);
+        deviceInfo = addText(deviceCard, "", 13, muted);
+        button(deviceCard, "Refresh screen and permission report", v -> refreshDiagnostics());
+        CheckBox reduceMotion = new CheckBox(this);
+        reduceMotion.setText("Reduce interface animations");
+        reduceMotion.setTextColor(foreground);
+        reduceMotion.setMinHeight(dp(48));
+        reduceMotion.setChecked(getSharedPreferences(TouchUi.PREFS, MODE_PRIVATE)
+            .getBoolean(TouchUi.REDUCED_MOTION, false));
+        deviceCard.addView(reduceMotion);
+        reduceMotion.setOnCheckedChangeListener((view, value) -> {
+            getSharedPreferences(TouchUi.PREFS, MODE_PRIVATE).edit()
+                .putBoolean(TouchUi.REDUCED_MOTION, value).apply();
+            if (value) {
+                root.animate().cancel();
+                root.setAlpha(1f);
+                root.setTranslationY(0f);
+            }
+        });
+        addText(deviceCard, "Privacy: no network permission, screen capture, account or API keys. "
+            + "Selected microSD folder URI and interface choices are kept in Android settings.",
+            12, muted);
+        refreshDiagnostics();
         refresh();
+        TouchUi.reveal(this, root);
     }
 
     private int dp(int value) {
@@ -142,16 +183,7 @@ public final class MainActivity extends Activity {
     }
 
     private void button(LinearLayout parent, String label, View.OnClickListener action) {
-        Button button = new Button(this);
-        button.setText(label);
-        button.setTextSize(14);
-        button.setAllCaps(false);
-        button.setTextColor(foreground);
-        button.setBackgroundTintList(ColorStateList.valueOf(Color.rgb(82, 44, 79)));
-        button.setOnClickListener(action);
-        LinearLayout.LayoutParams p = new LinearLayout.LayoutParams(-1, -2);
-        p.bottomMargin = dp(5);
-        parent.addView(button, p);
+        TouchUi.button(this, parent, label, action);
     }
 
     private Uri selectedUri() throws IOException {
@@ -252,7 +284,7 @@ public final class MainActivity extends Activity {
 
         LinearLayout choices = new LinearLayout(this);
         choices.setOrientation(LinearLayout.HORIZONTAL);
-        root.addView(choices, new LinearLayout.LayoutParams(-1, -2));
+        TouchUi.rail(this, root).addView(choices);
         int[] presets = {0xffb997e8, 0xffff91bd, 0xff71dece, 0xffffffff};
         String[] labels = {"Violet", "Rose", "Teal", "White"};
         for (int i = 0; i < presets.length; i++) {
@@ -260,10 +292,12 @@ public final class MainActivity extends Activity {
             Button preset = new Button(this);
             preset.setText(labels[i]);
             preset.setAllCaps(false);
-            preset.setTextSize(11);
-            preset.setTextColor(foreground);
-            preset.setBackgroundTintList(ColorStateList.valueOf(0xff512c53));
-            choices.addView(preset, new LinearLayout.LayoutParams(0, dp(48), 1));
+            TouchUi.styleButton(this, preset);
+            preset.setTextSize(12);
+            LinearLayout.LayoutParams size = new LinearLayout.LayoutParams(
+                dp(SquareLayoutPolicy.presetWidthDp(TouchUi.widthDp(this))), dp(56));
+            size.rightMargin = dp(6);
+            choices.addView(preset, size);
             preset.setOnClickListener(v -> {
                 autoColor.setChecked(false);
                 rgbBars[0].setProgress((selected >> 16) & 255);
@@ -325,15 +359,34 @@ public final class MainActivity extends Activity {
         catch (ActivityNotFoundException e) { setStatus("Android folder picker is unavailable."); }
     }
 
-    private void dictate(View v) {
-        Intent voice = new Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH);
-        voice.putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL,
-            RecognizerIntent.LANGUAGE_MODEL_FREE_FORM);
-        voice.putExtra(RecognizerIntent.EXTRA_PROMPT, "Dictate a note, then save it to SD.");
-        try { startActivityForResult(voice, DICTATE_NOTE); }
-        catch (ActivityNotFoundException e) {
-            setStatus("No Android speech recognizer installed. Manual notes still work.");
-        }
+    private void openVoiceLab() {
+        Intent launch = new Intent(this, VoiceLabActivity.class);
+        launch.putExtra(VoiceLabActivity.EXTRA_GAME,
+            game != null && game.getSelectedItem() != null
+                ? String.valueOf(game.getSelectedItem()) : "General");
+        startActivity(launch);
+    }
+
+    private void refreshDiagnostics() {
+        if (deviceInfo == null) return;
+        android.util.DisplayMetrics display = new android.util.DisplayMetrics();
+        getWindowManager().getDefaultDisplay().getRealMetrics(display);
+        int dpWidth = TouchUi.widthDp(this);
+        String selectedFolder = getSharedPreferences(PREFS, MODE_PRIVATE)
+            .getString(KEY_URI, null);
+        deviceInfo.setText("Reported display: " + display.widthPixels + " × "
+            + display.heightPixels + " physical pixels"
+            + "\nUsable width: " + dpWidth + " dp"
+            + "  •  density: "
+            + String.format(java.util.Locale.US, "%.2f", display.density)
+            + "\nAndroid " + Build.VERSION.RELEASE
+            + "  •  " + Build.MANUFACTURER + " " + Build.MODEL
+            + "\nOverlay permission: "
+            + (Settings.canDrawOverlays(this) ? "Granted" : "Off")
+            + "\nMicroSD folder: " + (selectedFolder == null
+                ? "Not selected" : "Selected; rerun write/read/delete test")
+            + "\n720 × 720 target: touch scrolling responds to user display scaling."
+            + "\nReal-device layouts, keyboard and swivel not yet verified.");
     }
 
     @Override protected void onActivityResult(int req, int result, Intent data) {
@@ -358,12 +411,6 @@ public final class MainActivity extends Activity {
                 setStatus("Verified removable SD folder and temporary file cleanup.");
                 refresh();
             } catch (Exception e) { setStatus("Folder rejected: " + e.getMessage()); }
-        } else if (req == DICTATE_NOTE) {
-            ArrayList<String> matches = data.getStringArrayListExtra(RecognizerIntent.EXTRA_RESULTS);
-            if (matches != null && !matches.isEmpty()) {
-                note.setText(matches.get(0));
-                setStatus("Dictated text received. Review and tap Save memory to SD.");
-            }
         }
     }
 

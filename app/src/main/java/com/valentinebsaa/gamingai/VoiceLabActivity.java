@@ -28,6 +28,8 @@ import android.widget.LinearLayout;
 import android.widget.ScrollView;
 import android.widget.SeekBar;
 import android.widget.Spinner;
+import android.widget.ListView;
+import android.graphics.drawable.ColorDrawable;
 import android.widget.TextView;
 
 import java.util.ArrayList;
@@ -55,7 +57,9 @@ public final class VoiceLabActivity extends Activity {
     private SpeechRecognizer recognizer;
     private boolean speechReady;
     private boolean listening;
-    private Spinner voices;
+    private ListView voices;
+    private ArrayAdapter<String> voiceItems;
+    private ScrollView labScroll;
     private Spinner voiceFilter;
     private TextView voiceDetails;
     private TextView guide;
@@ -78,82 +82,98 @@ public final class VoiceLabActivity extends Activity {
         game = getIntent().getStringExtra(EXTRA_GAME);
         if (game == null || game.trim().isEmpty()) game = "General";
         SharedPreferences preferences = getSharedPreferences(PREFS, MODE_PRIVATE);
-        ScrollView scroll = new ScrollView(this);
-        scroll.setFillViewport(true);
-        scroll.setBackgroundColor(background);
-        LinearLayout root = new LinearLayout(this);
-        root.setOrientation(LinearLayout.VERTICAL);
-        int pad = dp(18);
-        root.setPadding(pad, pad, pad, pad);
-        scroll.addView(root);
-        setContentView(scroll);
+        labScroll = TouchUi.page(this);
+        LinearLayout root = TouchUi.root(this, labScroll);
+        setContentView(labScroll);
+        labScroll.requestFocus();
 
         addText(root, "Voice Lab · $0 API cost", 25, foreground);
-        addText(root, "Offline voice audition • " + game, 13, muted);
-        addText(root, "This is a small scripted companion for testing voices, not a "
-            + "generative AI. It does not see the game, record conversations, "
-            + "speak over games, or use credits.", 13, foreground);
-
+        addText(root, "Touch-ready offline voice library • " + game, 13, muted);
+        addText(root, "A scripted voice demo, not a generative AI. No game screen access, "
+            + "background microphone, paid credits or automatic downloads.", 13, foreground);
         status = addText(root, "Initializing Android's voice engine...", 13, muted);
-        diagnostics = addText(root, "Checking offline voice and microphone availability...",
-            12, muted);
+        diagnostics = addText(root, "Checking installed offline voices...", 12, muted);
 
-        addText(root, "GUIDED OFFLINE VOICE SETUP", 14, foreground);
-        guide = addText(root,
-            "1. Scan available voices. 2. If none work, open the Android voice manager. "
-            + "3. Choose or download an offline voice there. 4. Return, refresh and preview. "
-            + "You stay in control of any installation or download.", 12, foreground);
-        button(root, "Step 1 · Check installed voice data", this::checkVoiceData);
-        button(root, "Step 2 · Manage or download voice packs", this::installVoiceData);
-        button(root, "Step 2 alternative · Android speech settings", this::openTtsSettings);
-        button(root, "Step 3 · Refresh installed voices", view -> refreshSpeechEngine());
+        LinearLayout shortcuts = new LinearLayout(this);
+        shortcuts.setOrientation(LinearLayout.HORIZONTAL);
+        TouchUi.rail(this, root).addView(shortcuts);
+        final LinearLayout setupCard = TouchUi.card(this, root);
+        final LinearLayout voicesCard = TouchUi.card(this, root);
+        final LinearLayout conversationCard = TouchUi.card(this, root);
+        final LinearLayout privacyCard = TouchUi.card(this, root);
+        TouchUi.chip(this, shortcuts, "Setup",
+            v -> TouchUi.jumpTo(this, labScroll, setupCard));
+        TouchUi.chip(this, shortcuts, "Voices",
+            v -> TouchUi.jumpTo(this, labScroll, voicesCard));
+        TouchUi.chip(this, shortcuts, "Talk",
+            v -> TouchUi.jumpTo(this, labScroll, conversationCard));
+        TouchUi.chip(this, shortcuts, "Privacy",
+            v -> TouchUi.jumpTo(this, labScroll, privacyCard));
 
-        addText(root, "ORGANIZED OFFLINE VOICES", 14, foreground);
-        addText(root, "Grouped by English region. Highest engine-reported quality first. "
-            + "Android does not reliably label voices by gender; preview them to choose.", 12, muted);
+        addText(setupCard, "GUIDED OFFLINE VOICE SETUP", 15, foreground);
+        guide = addText(setupCard,
+            "1. Check available voice data. 2. If needed, open Android voice settings. "
+            + "3. Approve any optional offline pack yourself. 4. Return and refresh. "
+            + "Actual voice quality must be tested on this device.", 12, foreground);
+        button(setupCard, "Step 1 · Check installed voice data", this::checkVoiceData);
+        button(setupCard, "Step 2 · Manage/download voice packs", this::installVoiceData);
+        button(setupCard, "Alternative · Android speech settings", this::openTtsSettings);
+        button(setupCard, "Step 3 · Refresh installed voice catalog",
+            view -> refreshSpeechEngine());
+
+        addText(voicesCard, "SCROLLABLE OFFLINE VOICES", 15, foreground);
+        addText(voicesCard, "Pick a region, swipe the list and tap a voice to select. "
+            + "Voice quality is engine-reported; gender is not inferred.", 12, muted);
         voiceFilter = new Spinner(this);
         String[] groups = {"All English voices", "US English", "UK English",
             "Other English", "My favorites"};
-        ArrayAdapter<String> groupAdapter = new ArrayAdapter<>(this,
+        ArrayAdapter<String> groupsAdapter = new ArrayAdapter<>(this,
             android.R.layout.simple_spinner_item, groups);
-        groupAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
-        voiceFilter.setAdapter(groupAdapter);
-        root.addView(voiceFilter, new LinearLayout.LayoutParams(-1, dp(55)));
+        groupsAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+        voiceFilter.setAdapter(groupsAdapter);
+        voiceFilter.setMinimumHeight(dp(52));
+        voicesCard.addView(voiceFilter, new LinearLayout.LayoutParams(-1, dp(56)));
         voiceFilter.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
-            @Override public void onItemSelected(AdapterView<?> parent, View view,
-                    int position, long id) {
+            @Override public void onItemSelected(AdapterView<?> parent,
+                    View view, int position, long id) {
                 refreshVisibleVoices();
             }
             @Override public void onNothingSelected(AdapterView<?> parent) {}
         });
-        voices = new Spinner(this);
-        ArrayAdapter<String> empty = new ArrayAdapter<>(this,
-            android.R.layout.simple_spinner_item, new String[]{"Checking offline voices..."});
-        empty.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
-        voices.setAdapter(empty);
-        root.addView(voices, new LinearLayout.LayoutParams(-1, dp(55)));
-        voices.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
-            @Override public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
-                if (!configuring && position >= 0 && position < visibleVoices.size()) {
-                    Voice selected = visibleVoices.get(position);
-                    getSharedPreferences(PREFS, MODE_PRIVATE).edit()
-                        .putString("voice", selected.getName()).apply();
-                    showVoiceDetails();
-                    setStatus("Voice selected. Tap Preview voice to hear it.");
-                }
+
+        voices = new ListView(this);
+        voices.setChoiceMode(ListView.CHOICE_MODE_SINGLE);
+        voices.setVerticalScrollBarEnabled(true);
+        voices.setSmoothScrollbarEnabled(true);
+        voices.setVerticalFadingEdgeEnabled(true);
+        voices.setFadingEdgeLength(dp(12));
+        voices.setOverScrollMode(View.OVER_SCROLL_IF_CONTENT_SCROLLS);
+        voices.setNestedScrollingEnabled(true);
+        voices.setDivider(new ColorDrawable(0xff384960));
+        voices.setDividerHeight(dp(1));
+        voicesCard.addView(voices, new LinearLayout.LayoutParams(-1,
+            dp(SquareLayoutPolicy.voiceListHeightDp(TouchUi.widthDp(this)))));
+        voices.setOnItemClickListener((parent, row, position, id) -> {
+            if (position >= 0 && position < visibleVoices.size()) {
+                voices.setItemChecked(position, true);
+                Voice selected = visibleVoices.get(position);
+                getSharedPreferences(PREFS, MODE_PRIVATE).edit()
+                    .putString("voice", selected.getName()).apply();
+                if (voiceItems != null) voiceItems.notifyDataSetChanged();
+                showVoiceDetails();
+                setStatus("Voice selected. Tap Preview to hear it.");
             }
-            @Override public void onNothingSelected(AdapterView<?> parent) {}
         });
 
-        voiceDetails = addText(root, "Select a voice to see its engine and language.", 12, muted);
-        button(root, "★ Add or remove selected voice from favorites", view -> toggleFavorite());
-
-        addText(root, "SPEAKING SPEED AND PITCH", 14, foreground);
-        rateBar = settingSlider(root, "Speed", preferences.getInt("rate", 30));
-        pitchBar = settingSlider(root, "Pitch", preferences.getInt("pitch", 30));
-        levels = addText(root, "", 12, muted);
-        SeekBar.OnSeekBarChangeListener settingsListener = new SeekBar.OnSeekBarChangeListener() {
-            @Override public void onProgressChanged(SeekBar bar, int value, boolean fromUser) {
+        voiceDetails = addText(voicesCard, "Choose a voice to see details.", 12, muted);
+        button(voicesCard, "★ Add/remove selected voice from favorites",
+            view -> toggleFavorite());
+        addText(voicesCard, "VOICE SPEED & PITCH", 14, foreground);
+        rateBar = settingSlider(voicesCard, "Speed", preferences.getInt("rate", 30));
+        pitchBar = settingSlider(voicesCard, "Pitch", preferences.getInt("pitch", 30));
+        levels = addText(voicesCard, "", 12, muted);
+        SeekBar.OnSeekBarChangeListener adjust = new SeekBar.OnSeekBarChangeListener() {
+            @Override public void onProgressChanged(SeekBar bar, int value, boolean user) {
                 refreshLevels();
             }
             @Override public void onStartTrackingTouch(SeekBar bar) {}
@@ -163,30 +183,31 @@ public final class VoiceLabActivity extends Activity {
                     .putInt("pitch", pitchBar.getProgress()).apply();
             }
         };
-        rateBar.setOnSeekBarChangeListener(settingsListener);
-        pitchBar.setOnSeekBarChangeListener(settingsListener);
+        rateBar.setOnSeekBarChangeListener(adjust);
+        pitchBar.setOnSeekBarChangeListener(adjust);
         refreshLevels();
 
         mute = new CheckBox(this);
         mute.setText("Mute spoken replies (text only)");
         mute.setTextColor(foreground);
+        mute.setMinHeight(dp(48));
         mute.setChecked(preferences.getBoolean("muted", false));
-        root.addView(mute);
-        mute.setOnCheckedChangeListener((view, checked) -> {
+        voicesCard.addView(mute);
+        mute.setOnCheckedChangeListener((button, checked) -> {
             getSharedPreferences(PREFS, MODE_PRIVATE).edit()
                 .putBoolean("muted", checked).apply();
             if (checked) stopSpeaking();
-            setStatus(checked ? "Muted. Replies stay on-screen." : "Unmuted. I only speak after you ask.");
+            setStatus(checked ? "Muted. Replies remain on-screen."
+                : "Unmuted. Voice only speaks when requested.");
         });
-
-        button(root, "Preview voice · sample phrase", v -> speak(
+        button(voicesCard, "Preview selected offline voice", v -> speak(
             "Hey, I'm here when you need me. Enjoy the game!", true));
-        button(root, "Stop speaking now", v -> {
+        button(voicesCard, "Stop speech now", v -> {
             stopSpeaking();
             setStatus("Stopped speaking.");
         });
 
-        addText(root, "TRY A CONVERSATION", 14, foreground);
+        addText(conversationCard, "TRY A SCRIPTED CONVERSATION", 15, foreground);
         prompt = new EditText(this);
         prompt.setSingleLine(false);
         prompt.setMinLines(2);
@@ -195,20 +216,25 @@ public final class VoiceLabActivity extends Activity {
         prompt.setHintTextColor(muted);
         prompt.setHint("Try: What do you remember? Can you see my game?");
         prompt.setTextSize(14);
-        root.addView(prompt);
-        button(root, "Ask companion · offline scripted reply", v ->
-            answer(prompt.getText().toString()));
-        button(root, "Push to talk · ON-DEVICE ONLY", v -> startOfflineListening());
-        button(root, "Stop microphone", v -> stopListening("Microphone stopped."));
-        response = addText(root, "Responses will appear here.", 14, foreground);
-        addText(root, "PRIVACY AND COST", 14, foreground);
-        addText(root, "No API key, subscription, internet permission or Piper. "
-            + "No raw audio or transcripts are saved. Only voice preferences are stored "
-            + "in Android settings; existing explicit notes remain on the selected microSD. "
-            + "Android's own speech engines may have their own privacy terms.", 12, muted);
-        button(root, "Back to Gaming AI", v -> finish());
+        conversationCard.addView(prompt);
+        button(conversationCard, "Ask companion · offline scripted reply",
+            v -> answer(prompt.getText().toString()));
+        button(conversationCard, "Push to talk · ON-DEVICE ONLY",
+            v -> startOfflineListening());
+        button(conversationCard, "Stop microphone",
+            v -> stopListening("Microphone stopped."));
+        response = addText(conversationCard, "Responses will appear here.", 14, foreground);
+
+        addText(privacyCard, "PRIVACY AND COST", 15, foreground);
+        addText(privacyCard, "No API key, subscription, internet permission or Piper. "
+            + "No raw audio or transcripts saved. Preferences are in Android settings; "
+            + "selected notes remain on your microSD. Voice engines have their own terms.",
+            12, muted);
+        button(privacyCard, "Back to Gaming AI", v -> finish());
+
         initSpeechEngine();
         updateDiagnostics();
+        TouchUi.reveal(this, root);
     }
 
     private int dp(int value) {
@@ -226,17 +252,7 @@ public final class VoiceLabActivity extends Activity {
     }
 
     private void button(LinearLayout root, String label, View.OnClickListener listener) {
-        Button button = new Button(this);
-        button.setText(label);
-        button.setTextSize(14);
-        button.setAllCaps(false);
-        button.setTextColor(foreground);
-        button.setMinHeight(dp(50));
-        button.setBackgroundTintList(ColorStateList.valueOf(Color.rgb(82, 44, 79)));
-        button.setOnClickListener(listener);
-        LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(-1, -2);
-        params.bottomMargin = dp(5);
-        root.addView(button, params);
+        TouchUi.button(this, root, label, listener);
     }
 
     private SeekBar settingSlider(LinearLayout root, String name, int value) {
@@ -352,11 +368,23 @@ public final class VoiceLabActivity extends Activity {
                 + "\n" + voice.getName());
         }
         if (labels.isEmpty()) labels.add("No offline voices in this category");
-        ArrayAdapter<String> adapter = new ArrayAdapter<>(this,
-            android.R.layout.simple_spinner_item, labels);
-        adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+        voiceItems = new ArrayAdapter<String>(this,
+                android.R.layout.simple_list_item_1, labels) {
+            @Override public View getView(int index, View previous, android.view.ViewGroup parent) {
+                TextView cell = (TextView) super.getView(index, previous, parent);
+                cell.setTextSize(13);
+                cell.setTextColor(foreground);
+                cell.setMinHeight(dp(65));
+                cell.setPadding(dp(12), dp(9), dp(12), dp(9));
+                cell.setSingleLine(false);
+                cell.setMaxLines(4);
+                cell.setBackgroundColor(index == voices.getCheckedItemPosition()
+                    ? 0xff3b4b67 : 0xff26344b);
+                return cell;
+            }
+        };
         configuring = true;
-        voices.setAdapter(adapter);
+        voices.setAdapter(voiceItems);
         String selected = getSharedPreferences(PREFS, MODE_PRIVATE)
             .getString("voice", "");
         int position = 0;
@@ -366,8 +394,14 @@ public final class VoiceLabActivity extends Activity {
                 break;
             }
         }
-        voices.setSelection(position);
+        if (!visibleVoices.isEmpty()) {
+            voices.setItemChecked(position, true);
+            voices.setSelection(position);
+        } else {
+            voices.clearChoices();
+        }
         configuring = false;
+        if (voiceItems != null) voiceItems.notifyDataSetChanged();
         showVoiceDetails();
     }
 
@@ -377,7 +411,7 @@ public final class VoiceLabActivity extends Activity {
     }
 
     private Voice chosenVoice() {
-        int index = voices == null ? -1 : voices.getSelectedItemPosition();
+        int index = voices == null ? -1 : voices.getCheckedItemPosition();
         if (index < 0 || index >= visibleVoices.size()) return null;
         return visibleVoices.get(index);
     }
@@ -519,7 +553,7 @@ public final class VoiceLabActivity extends Activity {
             setStatus("No offline voice ready. You can still read the response.");
             return;
         }
-        int index = voices.getSelectedItemPosition();
+        int index = voices.getCheckedItemPosition();
         if (index < 0 || index >= visibleVoices.size()) {
             setStatus("Select an offline voice first.");
             return;

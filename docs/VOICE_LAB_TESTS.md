@@ -42,3 +42,7 @@ This approach has **$0 third-party API usage**, but may require installing or do
 - [ ] V19 Try Airplane mode before/after installing official offline voice pack. Selected non-network voice must still speak with game sound muted; when absent, text fallback. No INTERNET permission in our APK; external installer may require network for downloads.
 - [ ] V20 Filter/favorite controls work on 720×720 with touch and swivel; PPSSPP, memory and orb regressions still passed. 0.1.3→0.1.4 upgrade retains selected voice, rate/pitch, memory and orb preferences.
 - [ ] V21 SDK 34 APK compiles and unit tests pass on clean main branch; install on RG Rotate not claimed until performed.
+
+
+## v0.1.5 square-screen update
+The voice options now use a fixed-height finger-scrollable ListView with tap-to-select highlight and native scrollbar rather than one large Android voice dropdown. Verify scrolling the voice list and surrounding page independently at 720×720 and 150% font scale, all five filters, favorites and correct preview. See [square touchscreen QA](SQUARE_TOUCHSCREEN_TESTS.md).
