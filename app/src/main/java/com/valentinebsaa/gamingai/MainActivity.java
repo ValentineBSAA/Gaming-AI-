@@ -59,7 +59,7 @@ public final class MainActivity extends HandheldActivity {
         mainScroll.requestFocus();
 
         TouchUi.header(this, root, "Gaming AI", "ROTATE • OFFLINE COMPANION");
-        addText(root, "v0.1.9 • Offline companion", 12, muted);
+        addText(root, "v0.2.0 RC • Offline companion", 12, muted);
         android.widget.GridLayout quick = TouchUi.quickGrid(this, root);
 
         final LinearLayout voiceCard = TouchUi.card(this, root);
