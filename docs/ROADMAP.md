@@ -140,3 +140,13 @@ The Voice Lab should help users choose *installed* free offline voices without s
 - [ ] G1C.3 After returning from official voice installer, refresh and preview voice offline in Airplane mode; voice data availability and quality verified, without hidden cloud calls.
 - [ ] G1C.4 Existing SD memory/overlay settings retained after upgrade; 720×720 display and swivel pass, PPSSPP still unaffected when Voice Lab not active.
 - [ ] G1C.5 User explicitly approves any third-party download; no automatic installs, external storage relocation claims or credit charging.
+
+
+## Gate 1D — 720×720 touchscreen and layout adaptation (v0.1.5) [ ]
+- [ ] G1D.1 PR + main-branch CI: layout policy tests, existing Android unit tests, grayscale PNG checks, APK artifact upload.
+- [ ] G1D.2 Physically verify 720×720 square UI with nav bars, software keyboard and enlarged font/density; all controls reachable without clipped edges.
+- [ ] G1D.3 Swipeable shortcut chips, scrollable voice list/favorites, selection highlight, horizontal orb presets and smooth touch behavior.
+- [ ] G1D.4 Ripple and gentle press animation, reduced motion toggle and OS animation disabled preference; no continuous background animation over PPSSPP.
+- [ ] G1D.5 Device Readiness panel and existing SD memory/orb/voice behavior regressions; main generic voice input route disabled to avoid accidental cloud recognition.
+- [ ] G1D.6 Physical RG Rotate hardware, swivel and PPSSPP checks with screenshots, RAM and battery metrics. **Not run until hardware**.
+See [full square touchscreen QA matrix](SQUARE_TOUCHSCREEN_TESTS.md). Code and CI green are not visual screenshot verification.
