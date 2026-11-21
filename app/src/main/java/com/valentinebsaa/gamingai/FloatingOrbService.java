@@ -9,6 +9,7 @@ import android.app.Service;
 import android.content.Intent;
 import android.content.res.ColorStateList;
 import android.graphics.Color;
+import android.graphics.PorterDuff;
 import android.graphics.PixelFormat;
 import android.graphics.drawable.GradientDrawable;
 import android.os.Build;
@@ -32,6 +33,7 @@ public final class FloatingOrbService extends Service {
     public static final String ACTION_SHOW = "com.valentinebsaa.gamingai.SHOW";
     public static final String ACTION_UPDATE = "com.valentinebsaa.gamingai.UPDATE";
     public static final String ACTION_STOP = "com.valentinebsaa.gamingai.STOP";
+    public static final String ACTION_THEME = "com.valentinebsaa.gamingai.THEME";
     public static final String EXTRA_STATUS = "orb_status";
     private static final String CHANNEL_ID = "gamingai_orb";
     private static final int NOTIFICATION_ID = 42;
@@ -40,6 +42,8 @@ public final class FloatingOrbService extends Service {
     private LinearLayout panel;
     private TextView label;
     private View indicator;
+    private final ImageView[] orbLayers = new ImageView[3];
+    private String currentState = "IDLE";
     private float startX;
     private float startY;
     private int originX;
@@ -65,9 +69,10 @@ public final class FloatingOrbService extends Service {
         }
         ensureForegroundNotification();
         if (panel == null) createOrb();
-        String state = intent == null ? "IDLE"
-            : intent.getStringExtra(EXTRA_STATUS);
-        updateStatus(OrbStatus.normalize(state));
+        if (intent != null && intent.hasExtra(EXTRA_STATUS)) {
+            currentState = OrbStatus.normalize(intent.getStringExtra(EXTRA_STATUS));
+        }
+        updateStatus(currentState);
         return START_NOT_STICKY;
     }
 
@@ -105,11 +110,12 @@ public final class FloatingOrbService extends Service {
         return new FrameLayout.LayoutParams(dp(76), dp(76), Gravity.CENTER);
     }
 
-    private void addLayer(FrameLayout stack, int resourceId) {
+    private ImageView addLayer(FrameLayout stack, int resourceId) {
         ImageView image = new ImageView(this);
         image.setImageResource(resourceId);
         image.setScaleType(ImageView.ScaleType.FIT_CENTER);
         stack.addView(image, centeredImageParams());
+        return image;
     }
 
     private void createOrb() {
@@ -121,9 +127,9 @@ public final class FloatingOrbService extends Service {
 
         FrameLayout orb = new FrameLayout(this);
         panel.addView(orb, new LinearLayout.LayoutParams(dp(80), dp(80)));
-        addLayer(orb, R.drawable.orb_core);
-        addLayer(orb, R.drawable.orb_petals);
-        addLayer(orb, R.drawable.orb_ring);
+        orbLayers[0] = addLayer(orb, R.drawable.orb_core);
+        orbLayers[1] = addLayer(orb, R.drawable.orb_petals);
+        orbLayers[2] = addLayer(orb, R.drawable.orb_ring);
 
         indicator = new View(this);
         FrameLayout.LayoutParams dot = new FrameLayout.LayoutParams(dp(13), dp(13),
@@ -197,6 +203,15 @@ public final class FloatingOrbService extends Service {
 
     private void updateStatus(String state) {
         if (label == null || indicator == null) return;
+        currentState = state;
+        int chosen = getSharedPreferences(OrbPalette.PREFS, MODE_PRIVATE)
+            .getInt(OrbPalette.COLOR_KEY, OrbPalette.DEFAULT_COLOR);
+        boolean automatic = getSharedPreferences(OrbPalette.PREFS, MODE_PRIVATE)
+            .getBoolean(OrbPalette.AUTO_KEY, false);
+        int tint = OrbPalette.resolve(automatic, chosen, state);
+        for (ImageView layer : orbLayers) {
+            if (layer != null) layer.setColorFilter(tint, PorterDuff.Mode.MULTIPLY);
+        }
         label.setText(state);
         int color;
         if ("READY".equals(state)) color = Color.rgb(134, 233, 196);
