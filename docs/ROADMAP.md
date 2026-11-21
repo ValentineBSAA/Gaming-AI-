@@ -36,6 +36,19 @@ Acceptance:
 - G1.9 On device: baseline startup time, memory footprint, UI legibility, and battery measurement recorded.
 **Prototype scope limit:** game detection, actual screenshots, always-on mic, AI reasoning and speaking back are **not** in v0.1.
 
+
+
+## Gate 1B — Free Android Voice Lab (v0.1.3) [ ]
+Deliverables: separate opt-in speech audition, zero paid APIs, on-device TTS only, optional Android 12 on-device push-to-talk when installed, scripted conversation and existing selected-game SD memory recall, explicit mute and stop, no capture over games.
+- [ ] G1B.1 JVM tests and Android APK build PASS on clean checkout with permission and dependency check.
+- [ ] G1B.2 Every eligible installed TTS voice can be previewed, selected and persisted; `isNetworkConnectionRequired()` must be false.
+- [ ] G1B.3 Pitch/speed, mute and stop work instantly; no voice starts on launch or leaks after activity backgrounding.
+- [ ] G1B.4 Android's on-device recognition is offered ONLY if installed. Runtime microphone consent. No legacy cloud recognition fallback, INTERNET permission or hidden API cost.
+- [ ] G1B.5 Ask typed or recognized question and read a bounded recent note from the selected game on SD. No invented screen observations; no automatic transcript storage.
+- [ ] G1B.6 Battery/thermal, offline sound quality, voice preference, audio routes and permission/device behavior pass physical RG Rotate tests listed in [VOICE_LAB_TESTS.md](VOICE_LAB_TESTS.md).
+- [ ] G1B.7 Upgrade v0.1.2→v0.1.3 retains memory/overlay selection and microSD grant; text fallback works with missing TTS/ASR providers.
+**Scope label: deterministic OFFLINE VOICE DEMO, not a generative AI, not background gaming conversation.** 3 GB of RAM is too constrained to assume local high-quality LLM plus PSP emulation without measured feasibility. Gate 2 native/conversational speech remains separately blocked on usability and cost.
+
 ## Gate 2 — Natural voice and presence (v0.2) [ ]
 Deliverables: optional real-time cloud speech session, one persistent companion personality, push-to-talk and explicit stop/mute, foreground/background audio support without stealing game input.
 Acceptance:

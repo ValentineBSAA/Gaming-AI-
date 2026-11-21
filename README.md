@@ -1,8 +1,8 @@
 # Gaming AI · RG Rotate companion
 
-**Prototype v0.1.2 source** for the Anbernic RG Rotate (Android 12, 720×720 display). This is the start of a single-personality voice-first gaming companion, not yet the complete AI. See [the gated roadmap](docs/ROADMAP.md) for acceptance tests and later features.
+**Prototype v0.1.3 source** for the Anbernic RG Rotate (Android 12, 720×720 display). This is the start of a single-personality voice-first gaming companion, not yet the complete AI. See [the gated roadmap](docs/ROADMAP.md) for acceptance tests and later features.
 
-## Implemented in v0.1.2
+## Implemented in v0.1.3
 
 - Square-screen touch interface for tagged notes about **Midnight Club 3: DUB Edition**, **Midnight Club: LA Remix**, **The 3rd Birthday**, and general conversations.
 - SAF picker for an **existing subfolder on a removable microSD**; persist the folder permission. Reject internal/cloud selections and fail closed if SD is unavailable.
@@ -10,7 +10,8 @@
 - Add/review/pin memories. Explicit compact action deduplicates unpinned notes, preferentially removes older unpinned notes if over the **256 KiB / 500-record** prototype limit. Pinned memories are protected; when the budget cannot be met the operation errors rather than dropping them.
 - Optional **three-layer PNG floating companion orb** with real status indication (IDLE / READY / SAVED / NO SD / ERROR); draggable and tap-to-open. Requires explicit Android “display over other apps” approval and displays a foreground notification with **Hide orb**.
 - SD write/read/delete self-test; native Android speech-recognition intent can **dictate** note text when a provider is installed. This is NOT yet a conversational AI or background voice service.
-- Automated policy tests and GitHub Actions APK build pipeline. No in-app microphone capture, screen recording, cloud data transfer or service keys in this build.
+- **Voice Lab:** no-credit voice audition using installed non-network English Android TTS voices, selectable voice/pitch/speed, mute/stop, opt-in Android 12 on-device speech recognition when available, and a deliberately scripted game-tagged demonstration that can read existing microSD notes. Does NOT converse generatively or speak over PPSSPP.
+- Automated policy tests and GitHub Actions APK build pipeline. No background microphone capture, screen recording, cloud data transfer or service keys in this build. Voice Lab requests microphone access only if the user taps on-device push-to-talk.
 
 ## Build
 
@@ -34,14 +35,19 @@ The unsigned-for-distribution debug APK is uploaded to the **Android debug APK**
 
 - Android normally installs APKs and keeps OS permissions/preferences internally. **Persistent note contents go on the microSD**, but not literally *every byte* of this Android app.
 - Android 11+ commonly blocks the root of an SD volume in the folder picker; select a dedicated subfolder.
-- v0.1 does **not** capture gameplay, delete screenshots from other apps, know what game is running, launch games, converse using AI, or speak. Those are separately gated features, not claims of an existing app.
+- v0.1.3 does **not** capture gameplay, delete screenshots from other apps, know what game is running, launch games, converse using generative AI, or speak while another app is foregrounded. Those are separately gated features, not claims of an existing app.
 - Some SD providers may expose unusual document IDs, in which case the conservative removable-card check rejects them. That case must be investigated on actual RG Rotate hardware before relaxing protection.
 - Not verified on physical hardware or compiled locally. CI and hardware tests are required before declaring any gate passed.
 
-**Privacy:** an overlay foreground service is used only after you explicitly enable it; no account, no network permission, no telemetry, no screenshots, no hardcoded credentials. Do not commit real gaming session data.
+**Privacy:** an overlay foreground service is used only after you explicitly enable it; no account, no network permission, no telemetry, no screenshots, no hardcoded credentials. Voice Lab has on-demand mic permission only; Android's external TTS/ASR engines have their own data-handling policies. Do not commit real gaming session data.
 
-## Personalize the orb (v0.1.2)
+## Personalize the orb (v0.1.3)
 
 Use **Color your companion** in the app. RGB sliders choose any 24-bit color and show the color hex code; presets provide one-tap choices. Selecting automatic status colors switches the hue by genuine state: ready mint, saved ice, missing SD amber, errors coral. Tap **Show draggable orb over games** and grant Android overlay permission. Colors persist across app restarts. No AI mood detection or game watching exists yet.
 
 See [palette details](docs/ORB_PALETTE.md) and [test checklist](docs/OVERLAY_TESTS.md).
+
+
+## Voice Lab · no API fees (v0.1.3)
+
+Open **Voice Lab** from the main app. Preview installed offline English Android voices, change the voice, speed and pitch, mute or stop, and test typed scripted replies. On-device microphone is optional and **only appears if the installed Android 12 recognition service supports it**. No automatic cloud fallback. This does not promise a natural feminine voice, background conversation or an AI model. See [voice QA and test plan](docs/VOICE_LAB_TESTS.md).
