@@ -87,8 +87,8 @@ public final class VoiceLabActivity extends Activity {
         setContentView(labScroll);
         labScroll.requestFocus();
 
-        addText(root, "Voice Lab · $0 API cost", 25, foreground);
-        addText(root, "Touch-ready offline voice library • " + game, 13, muted);
+        TouchUi.header(this, root, "Voice Lab", "OFFLINE AUDIO • $0 API CREDITS");
+        addText(root, "Audition voices for " + game, 13, muted);
         addText(root, "A scripted voice demo, not a generative AI. No game screen access, "
             + "background microphone, paid credits or automatic downloads.", 13, foreground);
         status = addText(root, "Initializing Android's voice engine...", 13, muted);
@@ -246,6 +246,7 @@ public final class VoiceLabActivity extends Activity {
         label.setText(content);
         label.setTextSize(size);
         label.setTextColor(color);
+        TouchUi.decorateLabel(label, content, size);
         label.setPadding(0, dp(8), 0, dp(8));
         root.addView(label, new LinearLayout.LayoutParams(-1, -2));
         return label;

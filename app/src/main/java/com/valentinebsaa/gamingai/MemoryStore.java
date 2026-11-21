@@ -130,6 +130,90 @@ public final class MemoryStore {
         }
     }
 
+    /**
+     * Explicit plaintext export stored inside the selected removable microSD folder.
+     * The export is not an off-card disaster-recovery backup: copy it elsewhere manually
+     * if protection against card loss is needed.
+     */
+    public String createBackup() throws IOException {
+        Snapshot source = bestSnapshot();
+        JSONObject json = new JSONObject();
+        try {
+            json.put("revision", Math.max(1, source.revision));
+            json.put("backupFormat", 1);
+            json.put("exportedAt", System.currentTimeMillis());
+            JSONArray notes = new JSONArray();
+            for (MemoryRecord record : source.entries) notes.put(record.toJson());
+            json.put("entries", notes);
+        } catch (JSONException e) {
+            throw new IOException("Unable to encode memory backup.", e);
+        }
+        byte[] data = json.toString().getBytes(StandardCharsets.UTF_8);
+        if (data.length > MemoryPolicy.MAX_BYTES + 8192) {
+            throw new IOException("Memory backup exceeds size limit.");
+        }
+        String filename = "gaming-ai-backup-" + System.currentTimeMillis() + ".json";
+        DocumentFile output = folder.createFile("application/json", filename);
+        if (output == null) throw new IOException("Unable to create backup file on microSD.");
+        try {
+            try (OutputStream stream = context.getContentResolver()
+                    .openOutputStream(output.getUri(), "wt")) {
+                if (stream == null) throw new IOException("microSD backup output stream failed.");
+                stream.write(data);
+                stream.flush();
+            }
+            List<MemoryRecord> verified = inspectBackup(output.getUri());
+            if (verified.size() != source.entries.size()) {
+                throw new IOException("Backup readback record count did not match.");
+            }
+            return output.getName() == null ? filename : output.getName();
+        } catch (IOException error) {
+            // Delete only our freshly created export if verification failed.
+            output.delete();
+            throw error;
+        }
+    }
+
+    /** Safely read and validate user-chosen JSON without changing live notes. */
+    public List<MemoryRecord> inspectBackup(Uri documentUri) throws IOException {
+        if (documentUri == null) throw new IOException("No backup file selected.");
+        try (InputStream input = context.getContentResolver().openInputStream(documentUri)) {
+            if (input == null) throw new IOException("Backup cannot be read.");
+            byte[] bytes = readLimited(input, MemoryPolicy.MAX_BYTES + 8192);
+            JSONObject json = new JSONObject(new String(bytes, StandardCharsets.UTF_8));
+            if (json.getLong("revision") < 1) {
+                throw new IOException("Backup revision is invalid.");
+            }
+            JSONArray array = json.getJSONArray("entries");
+            if (array.length() > MemoryPolicy.MAX_ENTRIES) {
+                throw new IOException("Backup has too many memories for the current limit.");
+            }
+            List<MemoryRecord> records = new ArrayList<>();
+            java.util.Set<String> ids = new java.util.HashSet<>();
+            for (int i = 0; i < array.length(); i++) {
+                MemoryRecord record = MemoryRecord.fromJson(array.getJSONObject(i));
+                if (record.id == null || record.id.trim().isEmpty()
+                        || record.id.length() > 128 || !ids.add(record.id)
+                        || record.game == null || record.game.trim().isEmpty()
+                        || record.game.length() > 128
+                        || record.note == null || record.note.trim().isEmpty()
+                        || record.note.length() > 500
+                        || record.when < 0) {
+                    throw new IOException("Backup has an invalid or duplicated memory.");
+                }
+                records.add(record);
+            }
+            if (MemoryPolicy.approxBytes(records) > MemoryPolicy.MAX_BYTES) {
+                throw new IOException("Backup would exceed the live memory budget.");
+            }
+            return records;
+        } catch (org.json.JSONException error) {
+            throw new IOException("This is not a valid Gaming AI memory backup.", error);
+        } catch (SecurityException error) {
+            throw new IOException("Backup file access not granted.", error);
+        }
+    }
+
     /** Returns only after a content round-trip and cleanup; never puts test data on internal storage. */
     public void selfTest() throws IOException {
         DocumentFile test = folder.createFile("application/octet-stream", "test-delete-me.bin");
