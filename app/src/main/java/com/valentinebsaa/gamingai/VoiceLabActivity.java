@@ -45,7 +45,7 @@ import java.util.Locale;
  * Requires a local TTS voice. Mic uses ONLY createOnDeviceSpeechRecognizer,
  * when the device exposes one; no network fallback or INTERNET permission.
  */
-public final class VoiceLabActivity extends Activity {
+public final class VoiceLabActivity extends HandheldActivity {
     public static final String EXTRA_GAME = "game";
     private static final String PREFS = "voice_lab_settings";
     private static final int REQUEST_MIC = 201;
