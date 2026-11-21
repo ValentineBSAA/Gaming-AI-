@@ -21,21 +21,41 @@ adb shell am start -W -n com.valentinebsaa.gamingai/.MainActivity
 sleep 3
 capture "main_720_density320_font130"
 
-# Navigate with an actual touchscreen tap calculated from the Android UI hierarchy.
-python3 - <<'PY' > square-evidence/voice_tap.txt
+# Scroll the 720x720 dashboard until the action is actually inside the viewport.
+# UIAutomator only exposes currently laid-out portions of a long ScrollView.
+for attempt in 1 2 3 4 5 6 7 8; do
+  adb shell uiautomator dump /sdcard/window.xml >/dev/null
+  adb exec-out cat /sdcard/window.xml > square-evidence/current.xml
+  if python3 - <<'PY' > square-evidence/voice_tap.txt
 from xml.etree import ElementTree
 import re
-root = ElementTree.parse("square-evidence/main_720_density320_font130.xml").getroot()
-for item in root.iter("node"):
-    if "Open Voice Lab" in item.get("text", ""):
-        match = re.fullmatch(r"\[(\d+),(\d+)\]\[(\d+),(\d+)\]", item.attrib["bounds"])
-        if match:
-            x1,y1,x2,y2=map(int,match.groups())
-            print((x1+x2)//2, (y1+y2)//2)
+root = ElementTree.parse("square-evidence/current.xml").getroot()
+for node in root.iter("node"):
+    if "Open Voice Lab" not in node.get("text", ""):
+        continue
+    match = re.fullmatch(r"\[(\d+),(\d+)\]\[(\d+),(\d+)\]",
+                         node.get("bounds", ""))
+    if match:
+        x1, y1, x2, y2 = map(int, match.groups())
+        # Only select controls currently in the visible app viewport.
+        if x2 > x1 and y2 > y1 and y1 >= 63 and y2 <= 594:
+            print((x1 + x2) // 2, (y1 + y2) // 2)
             break
 else:
-    raise SystemExit("FAIL: main Voice Lab button not exposed to accessibility hierarchy")
+    raise SystemExit(1)
 PY
+  then
+    cp square-evidence/current.xml square-evidence/main_scrolled_voice_action.xml
+    adb exec-out screencap -p > square-evidence/main_scrolled_voice_action.png
+    break
+  fi
+  adb shell input swipe 360 515 360 235 350
+  sleep 1
+done
+test -s square-evidence/voice_tap.txt || {
+  echo "FAIL: Voice Lab action not found after vertical scrolling"
+  exit 1
+}
 read -r x y < square-evidence/voice_tap.txt
 adb shell input tap "$x" "$y"
 sleep 5
