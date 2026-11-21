@@ -26,7 +26,7 @@ import java.util.Date;
 import java.util.List;
 
 /** User-controlled inspection, corrections and explicit backups on removable microSD. */
-public final class MemoryLibraryActivity extends Activity {
+public final class MemoryLibraryActivity extends HandheldActivity {
     private static final String PREFS = "permission_locator_only";
     private static final String URI_KEY = "sd_tree_uri";
     private static final int PICK_BACKUP = 34;
