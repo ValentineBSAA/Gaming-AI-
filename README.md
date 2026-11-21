@@ -1,8 +1,8 @@
 # Gaming AI · RG Rotate companion
 
-**Prototype v0.1.3 source** for the Anbernic RG Rotate (Android 12, 720×720 display). This is the start of a single-personality voice-first gaming companion, not yet the complete AI. See [the gated roadmap](docs/ROADMAP.md) for acceptance tests and later features.
+**Prototype v0.1.4 source** for the Anbernic RG Rotate (Android 12, 720×720 display). This is the start of a single-personality voice-first gaming companion, not yet the complete AI. See [the gated roadmap](docs/ROADMAP.md) for acceptance tests and later features.
 
-## Implemented in v0.1.3
+## Implemented in v0.1.4
 
 - Square-screen touch interface for tagged notes about **Midnight Club 3: DUB Edition**, **Midnight Club: LA Remix**, **The 3rd Birthday**, and general conversations.
 - SAF picker for an **existing subfolder on a removable microSD**; persist the folder permission. Reject internal/cloud selections and fail closed if SD is unavailable.
@@ -35,7 +35,7 @@ The unsigned-for-distribution debug APK is uploaded to the **Android debug APK**
 
 - Android normally installs APKs and keeps OS permissions/preferences internally. **Persistent note contents go on the microSD**, but not literally *every byte* of this Android app.
 - Android 11+ commonly blocks the root of an SD volume in the folder picker; select a dedicated subfolder.
-- v0.1.3 does **not** capture gameplay, delete screenshots from other apps, know what game is running, launch games, converse using generative AI, or speak while another app is foregrounded. Those are separately gated features, not claims of an existing app.
+- v0.1.4 does **not** capture gameplay, delete screenshots from other apps, know what game is running, launch games, converse using generative AI, or speak while another app is foregrounded. Those are separately gated features, not claims of an existing app.
 - Some SD providers may expose unusual document IDs, in which case the conservative removable-card check rejects them. That case must be investigated on actual RG Rotate hardware before relaxing protection.
 - Not verified on physical hardware or compiled locally. CI and hardware tests are required before declaring any gate passed.
 
@@ -51,3 +51,8 @@ See [palette details](docs/ORB_PALETTE.md) and [test checklist](docs/OVERLAY_TES
 ## Voice Lab · no API fees (v0.1.3)
 
 Open **Voice Lab** from the main app. Preview installed offline English Android voices, change the voice, speed and pitch, mute or stop, and test typed scripted replies. On-device microphone is optional and **only appears if the installed Android 12 recognition service supports it**. No automatic cloud fallback. This does not promise a natural feminine voice, background conversation or an AI model. See [voice QA and test plan](docs/VOICE_LAB_TESTS.md).
+
+
+## Guided offline voices (v0.1.4)
+
+Open **Voice Lab & offline voice guide**. The four-step wizard checks Android's TTS voice data, opens the engine's own optional voice-pack installer, offers Android TTS Settings (with accessibility fallback), and refreshes the catalog on return. None of those actions silently installs software; Android or the speech-engine app controls approval, network usage and downloads. The catalog filters US/UK/other English/offline favorites, reports the engine's **claimed** quality, and lets you audition/save favorite voices. An engine's offline flag does not prove voice data is downloaded: **test in Airplane mode**. If no engine or compatible Settings shortcut exists, the app explains how to navigate manually. This is still a scripted/no-credits offline demo, not a generative conversational AI. See [Voice Lab tests](docs/VOICE_LAB_TESTS.md).

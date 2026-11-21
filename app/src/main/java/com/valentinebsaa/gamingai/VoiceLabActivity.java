@@ -3,8 +3,10 @@ package com.valentinebsaa.gamingai;
 import android.Manifest;
 import android.app.Activity;
 import android.content.Intent;
+import android.content.ActivityNotFoundException;
 import android.content.pm.PackageManager;
 import android.content.SharedPreferences;
+import android.provider.Settings;
 import android.content.res.ColorStateList;
 import android.graphics.Color;
 import android.os.Build;
@@ -31,6 +33,8 @@ import android.widget.TextView;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.HashSet;
+import java.util.Set;
 import java.util.List;
 import java.util.Locale;
 
@@ -43,6 +47,7 @@ public final class VoiceLabActivity extends Activity {
     public static final String EXTRA_GAME = "game";
     private static final String PREFS = "voice_lab_settings";
     private static final int REQUEST_MIC = 201;
+    private static final int REQUEST_CHECK_VOICE_DATA = 202;
     private final int background = Color.rgb(15, 21, 35);
     private final int foreground = Color.rgb(242, 236, 244);
     private final int muted = Color.rgb(185, 176, 194);
@@ -51,7 +56,12 @@ public final class VoiceLabActivity extends Activity {
     private boolean speechReady;
     private boolean listening;
     private Spinner voices;
+    private Spinner voiceFilter;
+    private TextView voiceDetails;
+    private TextView guide;
     private final List<Voice> offlineVoices = new ArrayList<>();
+    private final List<Voice> visibleVoices = new ArrayList<>();
+    private boolean refreshAfterSettings;
     private EditText prompt;
     private TextView status;
     private TextView response;
@@ -88,7 +98,34 @@ public final class VoiceLabActivity extends Activity {
         diagnostics = addText(root, "Checking offline voice and microphone availability...",
             12, muted);
 
-        addText(root, "CHOOSE AN INSTALLED OFFLINE VOICE", 14, foreground);
+        addText(root, "GUIDED OFFLINE VOICE SETUP", 14, foreground);
+        guide = addText(root,
+            "1. Scan available voices. 2. If none work, open the Android voice manager. "
+            + "3. Choose or download an offline voice there. 4. Return, refresh and preview. "
+            + "You stay in control of any installation or download.", 12, foreground);
+        button(root, "Step 1 · Check installed voice data", this::checkVoiceData);
+        button(root, "Step 2 · Manage or download voice packs", this::installVoiceData);
+        button(root, "Step 2 alternative · Android speech settings", this::openTtsSettings);
+        button(root, "Step 3 · Refresh installed voices", view -> refreshSpeechEngine());
+
+        addText(root, "ORGANIZED OFFLINE VOICES", 14, foreground);
+        addText(root, "Grouped by English region. Highest engine-reported quality first. "
+            + "Android does not reliably label voices by gender; preview them to choose.", 12, muted);
+        voiceFilter = new Spinner(this);
+        String[] groups = {"All English voices", "US English", "UK English",
+            "Other English", "My favorites"};
+        ArrayAdapter<String> groupAdapter = new ArrayAdapter<>(this,
+            android.R.layout.simple_spinner_item, groups);
+        groupAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+        voiceFilter.setAdapter(groupAdapter);
+        root.addView(voiceFilter, new LinearLayout.LayoutParams(-1, dp(55)));
+        voiceFilter.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
+            @Override public void onItemSelected(AdapterView<?> parent, View view,
+                    int position, long id) {
+                refreshVisibleVoices();
+            }
+            @Override public void onNothingSelected(AdapterView<?> parent) {}
+        });
         voices = new Spinner(this);
         ArrayAdapter<String> empty = new ArrayAdapter<>(this,
             android.R.layout.simple_spinner_item, new String[]{"Checking offline voices..."});
@@ -97,14 +134,19 @@ public final class VoiceLabActivity extends Activity {
         root.addView(voices, new LinearLayout.LayoutParams(-1, dp(55)));
         voices.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
             @Override public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
-                if (!configuring && position >= 0 && position < offlineVoices.size()) {
+                if (!configuring && position >= 0 && position < visibleVoices.size()) {
+                    Voice selected = visibleVoices.get(position);
                     getSharedPreferences(PREFS, MODE_PRIVATE).edit()
-                        .putString("voice", offlineVoices.get(position).getName()).apply();
+                        .putString("voice", selected.getName()).apply();
+                    showVoiceDetails();
                     setStatus("Voice selected. Tap Preview voice to hear it.");
                 }
             }
             @Override public void onNothingSelected(AdapterView<?> parent) {}
         });
+
+        voiceDetails = addText(root, "Select a voice to see its engine and language.", 12, muted);
+        button(root, "★ Add or remove selected voice from favorites", view -> toggleFavorite());
 
         addText(root, "SPEAKING SPEED AND PITCH", 14, foreground);
         rateBar = settingSlider(root, "Speed", preferences.getInt("rate", 30));
@@ -234,8 +276,15 @@ public final class VoiceLabActivity extends Activity {
             recognizerMode = "Not accessible on this device. Type instead.";
         }
         if (diagnostics != null) {
-            diagnostics.setText("Offline text-to-speech voices: " + offlineVoices.size()
-                + "  •  On-device recognition: " + recognizerMode);
+            String engine = "Unknown";
+            try {
+                if (speech != null) engine = speech.getDefaultEngine();
+            } catch (Exception ignored) {}
+            diagnostics.setText("Android voice engine: " + engine
+                + "\nOffline English voices advertised: " + offlineVoices.size()
+                + "  •  On-device recognition: " + recognizerMode
+                + "\nA voice marked offline may still need its data installed; preview it "
+                + "in Airplane mode before relying on it.");
         }
     }
 
@@ -270,29 +319,191 @@ public final class VoiceLabActivity extends Activity {
         } catch (Exception e) {
             setStatus("Unable to enumerate offline voices: " + e.getMessage());
         }
-        Collections.sort(offlineVoices, Comparator.comparing(Voice::getName));
-        ArrayList<String> labels = new ArrayList<>();
+        offlineVoices.sort((left, right) ->
+            VoiceCatalog.compare(left.getLocale().toLanguageTag(), left.getQuality(),
+                left.getName(), right.getLocale().toLanguageTag(),
+                right.getQuality(), right.getName()));
+        refreshVisibleVoices();
+        updateDiagnostics();
+        setStatus(offlineVoices.isEmpty()
+            ? "No English voice advertised for offline use. Follow steps 1–3 above, or use text."
+            : offlineVoices.size() + " offline English voice options found. "
+                + "Preview to verify any voice pack is installed.");
+    }
+
+
+    /** Only metadata and user preferences are organized; no voice packages are downloaded. */
+    private void refreshVisibleVoices() {
+        if (voices == null) return;
+        visibleVoices.clear();
+        int category = voiceFilter == null ? 0 : voiceFilter.getSelectedItemPosition();
+        Set<String> favorites = favorites();
         for (Voice voice : offlineVoices) {
-            labels.add(voice.getName() + " · " + voice.getLocale().toLanguageTag()
-                + " · quality " + voice.getQuality());
+            if (VoiceCatalog.matches(category, voice.getLocale().toLanguageTag(),
+                    favorites.contains(voice.getName()))) {
+                visibleVoices.add(voice);
+            }
         }
-        if (labels.isEmpty()) labels.add("No English offline TTS voice installed");
+        ArrayList<String> labels = new ArrayList<>();
+        for (Voice voice : visibleVoices) {
+            labels.add((favorites.contains(voice.getName()) ? "★ " : "")
+                + VoiceCatalog.section(voice.getLocale().toLanguageTag())
+                + "  •  " + VoiceCatalog.qualityLabel(voice.getQuality())
+                + "\n" + voice.getName());
+        }
+        if (labels.isEmpty()) labels.add("No offline voices in this category");
         ArrayAdapter<String> adapter = new ArrayAdapter<>(this,
             android.R.layout.simple_spinner_item, labels);
         adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
         configuring = true;
         voices.setAdapter(adapter);
-        String saved = getSharedPreferences(PREFS, MODE_PRIVATE).getString("voice", "");
-        int selected = 0;
-        for (int i = 0; i < offlineVoices.size(); i++) {
-            if (offlineVoices.get(i).getName().equals(saved)) { selected = i; break; }
+        String selected = getSharedPreferences(PREFS, MODE_PRIVATE)
+            .getString("voice", "");
+        int position = 0;
+        for (int i = 0; i < visibleVoices.size(); i++) {
+            if (visibleVoices.get(i).getName().equals(selected)) {
+                position = i;
+                break;
+            }
         }
-        voices.setSelection(selected);
+        voices.setSelection(position);
         configuring = false;
-        updateDiagnostics();
-        setStatus(offlineVoices.isEmpty()
-            ? "No installed offline English voice. Install one in Android TTS settings, or use text."
-            : offlineVoices.size() + " offline English voices found. Preview and choose your favorite.");
+        showVoiceDetails();
+    }
+
+    private Set<String> favorites() {
+        return new HashSet<>(getSharedPreferences(PREFS, MODE_PRIVATE)
+            .getStringSet("favorite_voices", Collections.emptySet()));
+    }
+
+    private Voice chosenVoice() {
+        int index = voices == null ? -1 : voices.getSelectedItemPosition();
+        if (index < 0 || index >= visibleVoices.size()) return null;
+        return visibleVoices.get(index);
+    }
+
+    private void toggleFavorite() {
+        Voice selected = chosenVoice();
+        if (selected == null) {
+            setStatus("Choose an available voice to favorite.");
+            return;
+        }
+        Set<String> names = favorites();
+        boolean added = names.add(selected.getName());
+        if (!added) names.remove(selected.getName());
+        getSharedPreferences(PREFS, MODE_PRIVATE).edit()
+            .putStringSet("favorite_voices", names)
+            .putString("voice", selected.getName()).apply();
+        refreshVisibleVoices();
+        setStatus(added ? "Saved to favorites." : "Removed from favorites.");
+    }
+
+    private void showVoiceDetails() {
+        if (voiceDetails == null) return;
+        Voice selected = chosenVoice();
+        if (selected == null) {
+            voiceDetails.setText("No offline voice in this category. "
+                + "Switch to All English or open the setup guide above.");
+            return;
+        }
+        voiceDetails.setText(selected.getName() + "\n"
+            + selected.getLocale().getDisplayName(Locale.US) + "  •  "
+            + VoiceCatalog.qualityLabel(selected.getQuality())
+            + "\nOffline-capable according to the engine. "
+            + (favorites().contains(selected.getName()) ? "★ Favorite. " : "")
+            + "Actual local playback must be tested.");
+    }
+
+    private String enginePackage() {
+        try { return speech == null ? null : speech.getDefaultEngine(); }
+        catch (Exception ignored) { return null; }
+    }
+
+    private boolean launchEngineIntent(String action, boolean needsResult) {
+        Intent actionIntent = new Intent(action);
+        String engine = enginePackage();
+        if (engine == null || engine.trim().isEmpty()) {
+            setStatus("No installed voice engine available. Open Android speech settings.");
+            return false;
+        }
+        actionIntent.setPackage(engine);
+        try {
+            if (needsResult) startActivityForResult(actionIntent, REQUEST_CHECK_VOICE_DATA);
+            else startActivity(actionIntent);
+            refreshAfterSettings = !needsResult;
+            return true;
+        } catch (ActivityNotFoundException | SecurityException e) {
+            setStatus("Your voice engine has no compatible setup screen. "
+                + "Try Android speech settings below.");
+            return false;
+        }
+    }
+
+    private void checkVoiceData(View ignored) {
+        if (launchEngineIntent(TextToSpeech.Engine.ACTION_CHECK_TTS_DATA, true)) {
+            setStatus("Checking installed voice data with your Android speech engine...");
+        }
+    }
+
+    private void installVoiceData(View ignored) {
+        if (launchEngineIntent(TextToSpeech.Engine.ACTION_INSTALL_TTS_DATA, false)) {
+            setStatus("Opening your voice engine's setup. "
+                + "Choose/download an offline pack there if offered. Return and refresh.");
+        }
+    }
+
+    /** Android skins differ; always offer accessible Settings fallback. */
+    private void openTtsSettings(View ignored) {
+        String[] actions = {"com.android.settings.TTS_SETTINGS",
+            "android.settings.TTS_SETTINGS", Settings.ACTION_ACCESSIBILITY_SETTINGS};
+        for (String action : actions) {
+            try {
+                startActivity(new Intent(action));
+                refreshAfterSettings = true;
+                setStatus("In Android settings, find Text-to-speech output, "
+                    + "choose an engine and download an offline English voice if offered. "
+                    + "Return here and tap Refresh.");
+                return;
+            } catch (ActivityNotFoundException | SecurityException ignoredAction) {
+                // Different firmware may only expose the generic Accessibility page.
+            }
+        }
+        setStatus("No supported speech-settings shortcut on this firmware. "
+            + "Open Android Settings manually and search for Text-to-speech output.");
+    }
+
+    private void refreshSpeechEngine() {
+        stopSpeaking();
+        speechReady = false;
+        offlineVoices.clear();
+        visibleVoices.clear();
+        if (speech != null) {
+            speech.shutdown();
+            speech = null;
+        }
+        setStatus("Rechecking Android text-to-speech voices...");
+        initSpeechEngine();
+    }
+
+    @Override protected void onResume() {
+        super.onResume();
+        if (refreshAfterSettings) {
+            refreshAfterSettings = false;
+            refreshSpeechEngine();
+        }
+    }
+
+    @Override protected void onActivityResult(int request, int result, Intent data) {
+        super.onActivityResult(request, result, data);
+        if (request != REQUEST_CHECK_VOICE_DATA) return;
+        if (result == TextToSpeech.Engine.CHECK_VOICE_DATA_PASS) {
+            setStatus("The engine reports installed voice data. "
+                + "Select an offline English voice and preview it.");
+        } else {
+            setStatus("Some speech data may be missing or the engine cannot check it. "
+                + "Tap Manage/download voice packs, then return and refresh.");
+        }
+        refreshSpeechEngine();
     }
 
     private void stopSpeaking() {
@@ -304,16 +515,16 @@ public final class VoiceLabActivity extends Activity {
             setStatus("Muted. Uncheck Mute to hear the voice.");
             return;
         }
-        if (!speechReady || speech == null || offlineVoices.isEmpty()) {
+        if (!speechReady || speech == null || visibleVoices.isEmpty()) {
             setStatus("No offline voice ready. You can still read the response.");
             return;
         }
         int index = voices.getSelectedItemPosition();
-        if (index < 0 || index >= offlineVoices.size()) {
+        if (index < 0 || index >= visibleVoices.size()) {
             setStatus("Select an offline voice first.");
             return;
         }
-        Voice voice = offlineVoices.get(index);
+        Voice voice = visibleVoices.get(index);
         if (voice.isNetworkConnectionRequired()
             || speech.setVoice(voice) == TextToSpeech.ERROR) {
             setStatus("This offline voice is not usable on this device.");

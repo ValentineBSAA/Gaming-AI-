@@ -30,3 +30,15 @@
 This approach has **$0 third-party API usage**, but may require installing or downloading an offline voice package via the OS's TTS engine and requires sufficient device performance. Naturalness depends on installed engine and voice. No gender metadata is guaranteed. It is not a local generative AI model, and on-device ASR is *not guaranteed to be present*. The Android OS may cache data internally and voice packages may require storage outside of microSD; the memory policy applies to user notes.
 
 **Stop/go:** If the installed free voices sound robotic, do not quietly ship them as the final companion. Keep the Voice Lab for comparing voices, and investigate optimized licensed local neural voices and optional user-approved cloud fallback. No paid calls without explicit consent, cost ceiling and secure token broker.
+
+
+## v0.1.4 guided offline voice catalog regression (device tests pending)
+- [ ] V13 Verify catalog groups **All English / US / UK / Other / Favorites** and each group accurately filters real TTS voices, with same-group higher claimed quality ordered first. Unknown gender must never be labeled female/male without verified metadata.
+- [ ] V14 Star/unstar voice, select Favorites, preview and restart app; favorite and chosen voice persist and no broken selection indices occur after filtering.
+- [ ] V15 No English offline voices: empty list is explicit, text replies remain available, no crash when previewing empty selection.
+- [ ] V16 Check installed voice data via active engine; PASS/non-PASS/unsupported handled without invented results or automatic download.
+- [ ] V17 Manage/download voice data offers engine's official UI if supported. Engine missing installer: no crash, Android TTS/Accessibility settings shortcut fallback with manual guidance.
+- [ ] V18 Return from external settings after changing engine/voice pack, refresh/reinitialize TTS and ensure new list reflects actual engine. Device may require app restart. Never claim download completed unless TTS data check or actual playback confirms it.
+- [ ] V19 Try Airplane mode before/after installing official offline voice pack. Selected non-network voice must still speak with game sound muted; when absent, text fallback. No INTERNET permission in our APK; external installer may require network for downloads.
+- [ ] V20 Filter/favorite controls work on 720×720 with touch and swivel; PPSSPP, memory and orb regressions still passed. 0.1.3→0.1.4 upgrade retains selected voice, rate/pitch, memory and orb preferences.
+- [ ] V21 SDK 34 APK compiles and unit tests pass on clean main branch; install on RG Rotate not claimed until performed.
