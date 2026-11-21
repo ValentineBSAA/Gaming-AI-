@@ -112,11 +112,11 @@ public final class MemoryLibraryActivity extends Activity {
 
         LinearLayout backup = TouchUi.card(this, root);
         addText(backup, "BACKUP AND RESTORE", 15, TEXT);
-        addText(backup, "Backups are plaintext JSON and can include private information. "
+        addText(backup, "These backups contain memory notes, not the separate custom-game index. Plaintext JSON may include private information. "
             + "Keep them safe. A backup on this same microSD does not protect against card loss.",
             12, MUTED);
-        TouchUi.button(this, backup, "Create backup on selected microSD", v -> confirmBackup());
-        TouchUi.button(this, backup, "Preview and restore JSON", v -> chooseBackup());
+        TouchUi.button(this, backup, "Back up memory notes on microSD", v -> confirmBackup());
+        TouchUi.button(this, backup, "Preview and restore memory notes", v -> chooseBackup());
         addText(backup, "Restoring replaces current memories only after a separate confirmation. "
             + "Previewing a file never changes anything.", 12, MUTED);
         TouchUi.button(this, root, "Back to Gaming AI", v -> finish());
