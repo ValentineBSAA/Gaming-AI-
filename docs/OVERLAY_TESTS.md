@@ -1,4 +1,4 @@
-# v0.1.1 draggable orb: hands-on test checklist
+# v0.1.2 draggable orb: hands-on test checklist
 
 **Prerequisite:** successful GitHub APK build and install on the physical Anbernic RG Rotate. Source commit is not a hardware PASS.
 
@@ -11,3 +11,14 @@
 7. Test permission revocation and force-stop; app must never turn overlay back on without permission. After app process kill, overlay may stop; this baseline does not promise automatic resurrection.
 8. Compare battery impact and emulator FPS with orb OFF vs ON for 30 minutes. Record hardware version, Android version, CI run, and whether requested APK version matches.
 9. Status labels are **last reported operations**. They are not an active watcher or proof that AI is listening. This is a deliberately restricted preview.
+
+## Color personalization regression
+
+10. Verify each PNG is truly grayscale with transparent alpha, without baked-in checkerboard.
+11. Move each RGB slider through 0 and 255 and at least two mixed combinations; verify preview and overlay are tinted while highlights and transparent edges remain intact.
+12. Tap Violet, Rose, Teal, White presets; verify immediate preview and overlay updates and correct hex label.
+13. Restart app and overlay: manual RGB selections and automatic mode persist.
+14. Enable **Automatic status colors**; run SD test / save note / remove SD and confirm READY mint, SAVED ice, NO SD amber. The dot remains the true status indicator.
+15. Disable Automatic, change a custom hue, then trigger failures/successes: hue remains fixed while status label/dot can still change.
+16. Change colors with the overlay visible over PPSSPP; ensure no duplicated orb, stuck foreground service, or new permissions.
+17. Do not claim the AI chose a color until the later AI companion milestone actually exists.

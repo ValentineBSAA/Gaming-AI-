@@ -1,8 +1,8 @@
 # Gaming AI · RG Rotate companion
 
-**Prototype v0.1.1 source** for the Anbernic RG Rotate (Android 12, 720×720 display). This is the start of a single-personality voice-first gaming companion, not yet the complete AI. See [the gated roadmap](docs/ROADMAP.md) for acceptance tests and later features.
+**Prototype v0.1.2 source** for the Anbernic RG Rotate (Android 12, 720×720 display). This is the start of a single-personality voice-first gaming companion, not yet the complete AI. See [the gated roadmap](docs/ROADMAP.md) for acceptance tests and later features.
 
-## Implemented in v0.1.1
+## Implemented in v0.1.2
 
 - Square-screen touch interface for tagged notes about **Midnight Club 3: DUB Edition**, **Midnight Club: LA Remix**, **The 3rd Birthday**, and general conversations.
 - SAF picker for an **existing subfolder on a removable microSD**; persist the folder permission. Reject internal/cloud selections and fail closed if SD is unavailable.
@@ -39,3 +39,9 @@ The unsigned-for-distribution debug APK is uploaded to the **Android debug APK**
 - Not verified on physical hardware or compiled locally. CI and hardware tests are required before declaring any gate passed.
 
 **Privacy:** an overlay foreground service is used only after you explicitly enable it; no account, no network permission, no telemetry, no screenshots, no hardcoded credentials. Do not commit real gaming session data.
+
+## Personalize the orb (v0.1.2)
+
+Use **Color your companion** in the app. RGB sliders choose any 24-bit color and show the color hex code; presets provide one-tap choices. Selecting automatic status colors switches the hue by genuine state: ready mint, saved ice, missing SD amber, errors coral. Tap **Show draggable orb over games** and grant Android overlay permission. Colors persist across app restarts. No AI mood detection or game watching exists yet.
+
+See [palette details](docs/ORB_PALETTE.md) and [test checklist](docs/OVERLAY_TESTS.md).
