@@ -69,8 +69,16 @@ public final class MainActivity extends Activity {
         setContentView(scroll);
 
         addText(root, "Gaming AI · Rotate", 26, foreground);
-        addText(root, "Prototype 0.1.2  •  Tintable grayscale orb", 13, muted);
-        addText(root, "One companion, many games. Natural AI voice comes in Gate 2.", 15, foreground);
+        addText(root, "Prototype 0.1.3  •  Local Voice Lab + tintable orb", 13, muted);
+        addText(root, "One companion, many games. Try free offline voice tests; full AI comes later.", 15, foreground);
+        button(root, "Open Voice Lab · no API credits", v -> {
+            Intent voiceLab = new Intent(this, VoiceLabActivity.class);
+            voiceLab.putExtra(VoiceLabActivity.EXTRA_GAME,
+                game != null ? String.valueOf(game.getSelectedItem()) : "General");
+            startActivity(voiceLab);
+        });
+        addText(root, "Voice Lab only speaks when asked. Built-in Android voices vary in quality; no Piper or subscription.",
+            12, muted);
         overview = addText(root, "Choose a folder on your removable microSD.", 13, muted);
         button(root, "Choose microSD subfolder", this::chooseFolder);
         button(root, "Test SD write / read / delete", this::testSd);
