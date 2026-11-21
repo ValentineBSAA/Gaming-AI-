@@ -137,7 +137,7 @@ public final class MainActivity extends Activity {
 
         button(memoryCard, "Save memory to SD", this::saveNote);
         button(memoryCard, "Offline push-to-talk · Open Voice Lab", v -> openVoiceLab());
-        button(memoryCard, "Compact unpinned memories", this::compact);
+        button(memoryCard, "Review / archive & compact notes", this::compact);
         button(memoryCard, "Refresh saved memories", this::refresh);
         button(memoryCard, "Open Memory Library · edit, pin, backup", v ->
             startActivity(new Intent(this, MemoryLibraryActivity.class)));
@@ -479,14 +479,50 @@ public final class MainActivity extends Activity {
     private void compact(View v) {
         try {
             MemoryStore storage = store();
-            List<MemoryRecord> before = storage.load();
-            List<MemoryRecord> after = MemoryPolicy.compact(before,
-                    MemoryPolicy.MAX_ENTRIES, MemoryPolicy.MAX_BYTES);
-            storage.save(after);
-            setStatus("Compacted " + before.size() + " to " + after.size()
-                    + " records; protected entries retained.");
-            refresh();
-        } catch (Exception e) { setStatus("Compaction not applied: " + e.getMessage()); }
+            List<MemoryRecord> current = storage.load();
+            List<MemoryRecord> compacted = MemoryPolicy.compact(current,
+                MemoryPolicy.MAX_ENTRIES, MemoryPolicy.MAX_BYTES);
+            int removed = current.size() - compacted.size();
+            if (removed == 0) {
+                setStatus("Already compact. All " + current.size() + " memories are preserved.");
+                return;
+            }
+            String initialDigest = CombinedBackupRules.sha256(
+                current, new java.util.ArrayList<>());
+            new android.app.AlertDialog.Builder(this)
+                .setTitle("Archive before removing old notes?")
+                .setMessage("This will remove " + removed + " duplicate or older unpinned "
+                    + "memories from the active library. Protected memories remain. "
+                    + "First, Gaming AI creates and verifies a complete note backup "
+                    + "on your microSD. Copy that backup off the card to keep a "
+                    + "permanent history. Nothing is removed until you confirm.")
+                .setNegativeButton("Cancel", null)
+                .setPositiveButton("Back up and compact", (dialog, button) -> {
+                    try {
+                        MemoryStore liveStore = store();
+                        List<MemoryRecord> live = liveStore.load();
+                        if (!initialDigest.equals(CombinedBackupRules.sha256(
+                                live, new java.util.ArrayList<>()))) {
+                            setStatus("Notes changed during review. Reopen compaction to check "
+                                + "the latest memory list.");
+                            return;
+                        }
+                        String recovery = liveStore.createBackup();
+                        List<MemoryRecord> trimmed = MemoryPolicy.compact(live,
+                            MemoryPolicy.MAX_ENTRIES, MemoryPolicy.MAX_BYTES);
+                        liveStore.save(trimmed);
+                        setStatus("Removed " + (live.size() - trimmed.size())
+                            + " unpinned notes after a verified recovery backup: "
+                            + recovery + ". Copy it off the card for safekeeping.");
+                        refresh();
+                    } catch (Exception failed) {
+                        setStatus("No successful compaction: " + failed.getMessage()
+                            + ". Check the active notes and recovery backup before retrying.");
+                    }
+                }).show();
+        } catch (Exception e) {
+            setStatus("Compaction preview unavailable: " + e.getMessage());
+        }
     }
 
     @Override protected void onResume() {
