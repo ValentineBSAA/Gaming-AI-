@@ -59,12 +59,20 @@ public final class MainActivity extends Activity {
         mainScroll.requestFocus();
 
         TouchUi.header(this, root, "Gaming AI", "ROTATE • OFFLINE COMPANION");
-        addText(root, "v0.1.7  •  Custom microSD game profiles and offline voice preview.",
+        addText(root, "v0.1.8  •  Guided setup and unified microSD backups.",
             13, muted);
 
         LinearLayout shortcuts = new LinearLayout(this);
         shortcuts.setOrientation(LinearLayout.HORIZONTAL);
         TouchUi.rail(this, root).addView(shortcuts);
+
+        final LinearLayout startHere = TouchUi.card(this, root);
+        addText(startHere, "START HERE · ROTATE READINESS", 15, foreground);
+        addText(startHere, "New device? Follow the guided checklist for your "
+            + "screen, microSD, offline voice and overlay. Every test is labeled "
+            + "PASS, NEEDS ACTION or NOT TESTED.", 12, muted);
+        button(startHere, "Open First-day Setup & Diagnostic Report",
+            v -> startActivity(new Intent(this, SetupGuideActivity.class)));
 
         final LinearLayout voiceCard = TouchUi.card(this, root);
         final LinearLayout storageCard = TouchUi.card(this, root);
@@ -143,6 +151,8 @@ public final class MainActivity extends Activity {
         addText(deviceCard, "DEVICE READINESS", 15, foreground);
         deviceInfo = addText(deviceCard, "", 13, muted);
         button(deviceCard, "Refresh screen and permission report", v -> refreshDiagnostics());
+        button(deviceCard, "Guided setup & test checklist",
+            v -> startActivity(new Intent(this, SetupGuideActivity.class)));
         CheckBox reduceMotion = new CheckBox(this);
         reduceMotion.setText("Reduce interface animations");
         reduceMotion.setTextColor(foreground);
