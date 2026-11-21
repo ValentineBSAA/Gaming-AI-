@@ -53,8 +53,8 @@ public final class MemoryLibraryActivity extends Activity {
         LinearLayout root = TouchUi.root(this, scroll);
         setContentView(scroll);
         scroll.requestFocus();
-        addText(root, "Memory Library", 25, TEXT);
-        addText(root, "Your games, your memories • private microSD storage", 13, MUTED);
+        TouchUi.header(this, root, "Memory Library", "PRIVATE NOTES • MICROSD");
+        addText(root, "Your games and memories, carefully organized.", 13, MUTED);
         status = addText(root, "Checking your saved memories...", 12, MUTED);
 
         LinearLayout browseCard = TouchUi.card(this, root);
@@ -132,6 +132,7 @@ public final class MemoryLibraryActivity extends Activity {
         label.setText(value);
         label.setTextSize(size);
         label.setTextColor(color);
+        TouchUi.decorateLabel(label, value, size);
         label.setPadding(0, dp(9), 0, dp(9));
         parent.addView(label, new LinearLayout.LayoutParams(-1, -2));
         return label;
