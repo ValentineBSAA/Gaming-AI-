@@ -159,3 +159,21 @@ See [full square touchscreen QA matrix](SQUARE_TOUCHSCREEN_TESTS.md). Code and C
 - [ ] G1E.4 Demonstrate editing and manual deletion of protected notes, restore from export, SD removal/revoke, corrupted backup, and no memory saved internally.
 - [ ] G1E.5 720×720 screenshots at multiple density/font combinations, full accessibility and swipe gestures; real RG Rotate physical tests required before marked complete.
 [Visual language, safety and detailed acceptance](PREMIUM_UI_SPEC.md).
+
+
+## Gate 1F — Editable microSD game catalog (v0.1.7) [ ]
+- [ ] G1F.1 GitHub Android unit tests, APK build and artifact succeed; pure-Java profile policy unit tests handle normalization, duplicates, history recovery, built-in protection and >80 entry limit.
+- [ ] G1F.2 On real microSD, create and verify two alternating profile snapshots; read back and recover from a single bad slot; refuse if neither available.
+- [ ] G1F.3 Add a custom game, select it in dashboard, save a note, read that same game context in Voice Lab, filter its notes in Memory Library.
+- [ ] G1F.4 Starter games and old note titles remain available after upgrading; no data migration or renaming of existing notes; removal only allowed for empty custom profiles.
+- [ ] G1F.5 Profile names are not added to internal app storage; existing memory JSON backup covers **notes only**, not profiles. Full combined backup is a separate future task.
+- [ ] G1F.6 Actual 720×720 touchscreen, keyboard, swipe, font scale, microSD ejection/reinsert and PPSSPP tests **NOT RUN until hardware**.
+[Detailed profile test plan](GAME_PROFILES_TESTS.md).
+
+## Next readiness releases (proposed, not implemented) [ ]
+- [ ] G1G.1 First-day guided checklist with honest pass/fail/not-run for microSD, overlays, voice, on-device dictation, controller, square display and permissions; export privacy-safe diagnostic report.
+- [ ] G1G.2 Unified microSD import/export including memory profiles and settings; checksum/manifest, dry-run preview and rollback; make clear same-card backup is not disaster recovery.
+- [ ] G2.1 Natural voice audition on real hardware; do not presume vendor voice gender/quality from the mockups; decide zero-credit voice strategy from listening tests.
+- [ ] G3.1 User opt-in per-game context cards with structured facts and pinned notes; explicit corrections and compact memory, no silent screen monitoring.
+- [ ] G4.1 Ephemeral vision (not live until approved): opt-in, in-memory frame-only processing, no destructive access to emulator files, background/foreground capture teardown, storage cap 0 by default.
+- [ ] G5.1 Quiet/Coach/Chatty personality modes and optional game-specific response frequency, only after conversation and performance testing.
