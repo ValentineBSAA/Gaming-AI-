@@ -1,6 +1,8 @@
 package com.valentinebsaa.gamingai;
 
 import android.app.Activity;
+import android.os.Build;
+import android.provider.Settings;
 import android.content.ActivityNotFoundException;
 import android.content.Intent;
 import android.content.res.ColorStateList;
@@ -64,6 +66,11 @@ public final class MainActivity extends Activity {
         overview = addText(root, "Choose a folder on your removable microSD.", 13, muted);
         button(root, "Choose microSD subfolder", this::chooseFolder);
         button(root, "Test SD write / read / delete", this::testSd);
+        addText(root, "FLOATING COMPANION", 15, foreground);
+        button(root, "Show draggable orb over games", this::enableOverlay);
+        button(root, "Hide companion orb", this::hideOverlay);
+        addText(root, "Optional overlay. Drag to reposition; tap it to return here. " +
+            "The indicator shows the last reported app state, not live game awareness.", 12, muted);
 
         addText(root, "SAVE A MEMORY", 15, foreground);
         game = new Spinner(this);
@@ -142,6 +149,41 @@ public final class MainActivity extends Activity {
     }
 
     private MemoryStore store() throws IOException { return new MemoryStore(this, selectedUri()); }
+
+    private void enableOverlay(View v) {
+        if (!Settings.canDrawOverlays(this)) {
+            Intent permission = new Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
+                Uri.parse("package:" + getPackageName()));
+            try {
+                startActivity(permission);
+                setStatus("Allow Display over other apps in Android settings, then return and tap Show again.");
+            } catch (Exception e) {
+                setStatus("Overlay permission screen unavailable: " + e.getMessage());
+            }
+            return;
+        }
+        try {
+            Intent service = new Intent(this, FloatingOrbService.class);
+            service.setAction(FloatingOrbService.ACTION_SHOW);
+            service.putExtra(FloatingOrbService.EXTRA_STATUS, "IDLE");
+            if (Build.VERSION.SDK_INT >= 26) startForegroundService(service);
+            else startService(service);
+            getSharedPreferences(PREFS, MODE_PRIVATE).edit()
+                .putBoolean("overlay_enabled", true).apply();
+            setStatus("Overlay enabled. Drag the orb anywhere; tap it to open Gaming AI.");
+        } catch (Exception e) {
+            getSharedPreferences(PREFS, MODE_PRIVATE).edit()
+                .putBoolean("overlay_enabled", false).apply();
+            setStatus("Unable to start overlay: " + e.getMessage());
+        }
+    }
+
+    private void hideOverlay(View v) {
+        getSharedPreferences(PREFS, MODE_PRIVATE).edit()
+            .putBoolean("overlay_enabled", false).apply();
+        stopService(new Intent(this, FloatingOrbService.class));
+        setStatus("Overlay hidden.");
+    }
 
     private void chooseFolder(View v) {
         Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT_TREE);
@@ -258,5 +300,19 @@ public final class MainActivity extends Activity {
         }
     }
 
-    private void setStatus(String value) { if (status != null) status.setText(value); }
+    private void setStatus(String value) {
+        if (status != null) status.setText(value);
+        if (!getSharedPreferences(PREFS, MODE_PRIVATE)
+                .getBoolean("overlay_enabled", false)
+                || !Settings.canDrawOverlays(this)) return;
+        Intent service = new Intent(this, FloatingOrbService.class);
+        service.setAction(FloatingOrbService.ACTION_UPDATE);
+        service.putExtra(FloatingOrbService.EXTRA_STATUS, OrbStatus.fromMessage(value));
+        try {
+            if (Build.VERSION.SDK_INT >= 26) startForegroundService(service);
+            else startService(service);
+        } catch (Exception e) {
+            // A background-service restriction must not interrupt local SD operations.
+        }
+    }
 }
