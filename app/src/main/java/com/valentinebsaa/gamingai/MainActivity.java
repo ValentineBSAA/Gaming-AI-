@@ -61,7 +61,7 @@ public final class MainActivity extends Activity {
         setContentView(scroll);
 
         addText(root, "Gaming AI · Rotate", 26, foreground);
-        addText(root, "Prototype 0.1.0  •  Offline memory shell", 13, muted);
+        addText(root, "Prototype 0.1.1  •  Offline memory + status orb", 13, muted);
         addText(root, "One companion, many games. Natural AI voice comes in Gate 2.", 15, foreground);
         overview = addText(root, "Choose a folder on your removable microSD.", 13, muted);
         button(root, "Choose microSD subfolder", this::chooseFolder);

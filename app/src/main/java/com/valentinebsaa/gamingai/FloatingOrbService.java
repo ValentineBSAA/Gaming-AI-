@@ -54,6 +54,8 @@ public final class FloatingOrbService extends Service {
 
     @Override public int onStartCommand(Intent intent, int flags, int startId) {
         if (intent != null && ACTION_STOP.equals(intent.getAction())) {
+            getSharedPreferences("permission_locator_only", MODE_PRIVATE).edit()
+                .putBoolean("overlay_enabled", false).apply();
             stopSelf();
             return START_NOT_STICKY;
         }
