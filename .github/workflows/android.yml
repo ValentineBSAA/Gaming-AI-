@@ -22,8 +22,14 @@ jobs:
       - name: Install required Android platform (runner has command-line SDK tools)
         run: |
           echo "ANDROID_HOME=$ANDROID_HOME"
-          sdkmanager --version
-          sdkmanager "platforms;android-34" "build-tools;34.0.0"
+          SDKMANAGER="$ANDROID_HOME/cmdline-tools/16.0/bin/sdkmanager"
+          if [ ! -x "$SDKMANAGER" ]; then
+            SDKMANAGER="$(find "$ANDROID_HOME/cmdline-tools" -maxdepth 3 -type f -name sdkmanager | head -n 1)"
+          fi
+          test -n "$SDKMANAGER" && test -x "$SDKMANAGER"
+          "$SDKMANAGER" --version
+          yes | "$SDKMANAGER" --licenses >/dev/null || true
+          "$SDKMANAGER" --sdk_root="$ANDROID_HOME" "platforms;android-34" "build-tools;34.0.0"
       - name: Gradle 8.7
         uses: gradle/actions/setup-gradle@v4
         with:
