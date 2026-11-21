@@ -30,6 +30,7 @@ public final class MemoryLibraryActivity extends Activity {
     private static final String PREFS = "permission_locator_only";
     private static final String URI_KEY = "sd_tree_uri";
     private static final int PICK_BACKUP = 34;
+    private static final int PICK_COMBINED_BACKUP = 35;
     private static final int TEXT = Color.rgb(242, 236, 244);
     private static final int MUTED = Color.rgb(185, 176, 194);
     private TextView status;
@@ -115,6 +116,11 @@ public final class MemoryLibraryActivity extends Activity {
         addText(backup, "These backups contain memory notes, not the separate custom-game index. Plaintext JSON may include private information. "
             + "Keep them safe. A backup on this same microSD does not protect against card loss.",
             12, MUTED);
+        TouchUi.button(this, backup, "Create COMPLETE backup · notes + games",
+            v -> confirmCompleteBackup());
+        TouchUi.button(this, backup, "Preview / restore COMPLETE backup",
+            v -> chooseCompleteBackup());
+        addText(backup, "Legacy note-only tools (older backups)", 12, MUTED);
         TouchUi.button(this, backup, "Back up memory notes on microSD", v -> confirmBackup());
         TouchUi.button(this, backup, "Preview and restore memory notes", v -> chooseBackup());
         addText(backup, "Restoring replaces current memories only after a separate confirmation. "
@@ -303,6 +309,81 @@ public final class MemoryLibraryActivity extends Activity {
             }).show();
     }
 
+    private CombinedBackupStore combined() throws IOException {
+        String raw = getSharedPreferences(PREFS, MODE_PRIVATE).getString(URI_KEY, null);
+        if (raw == null) throw new IOException("Choose your microSD folder in the dashboard first.");
+        return new CombinedBackupStore(this, Uri.parse(raw));
+    }
+
+    private void confirmCompleteBackup() {
+        new AlertDialog.Builder(this)
+            .setTitle("Export your complete Gaming AI library?")
+            .setMessage("This makes one plaintext JSON file containing BOTH your saved "
+                + "memories and custom game titles. It is not encrypted. The file will "
+                + "stay on the selected microSD, so also copy it to another device "
+                + "to protect against card loss.")
+            .setNegativeButton("Cancel", null)
+            .setPositiveButton("Create and verify", (dialog, action) -> {
+                try {
+                    String filename = combined().create();
+                    show("Complete backup verified: " + filename
+                        + ". Keep an additional copy off the microSD.");
+                } catch (Exception error) {
+                    show("No complete backup created: " + error.getMessage());
+                }
+            }).show();
+    }
+
+    private void chooseCompleteBackup() {
+        Intent picker = new Intent(Intent.ACTION_OPEN_DOCUMENT);
+        picker.addCategory(Intent.CATEGORY_OPENABLE);
+        picker.setType("application/json");
+        picker.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+        try { startActivityForResult(picker, PICK_COMBINED_BACKUP); }
+        catch (Exception error) {
+            show("Android file picker unavailable: " + error.getMessage());
+        }
+    }
+
+    private void previewCompleteBackup(Uri selected) {
+        final CombinedBackupStore.Preview preview;
+        try { preview = combined().inspect(selected); }
+        catch (Exception error) {
+            show("Backup rejected: " + error.getMessage());
+            return;
+        }
+        new AlertDialog.Builder(this)
+            .setTitle("Verified COMPLETE Gaming AI backup")
+            .setMessage(preview.memories.size() + " memories (" + preview.pinnedCount()
+                + " protected) plus " + preview.customGames.size()
+                + " custom games.\nSHA-256: " + preview.checksum.substring(0, 16)
+                + "…\n\nThis is only a preview. No data has been changed.")
+            .setNegativeButton("Cancel", null)
+            .setPositiveButton("Continue to confirmation",
+                (dialog, action) -> confirmCompleteRestore(preview))
+            .show();
+    }
+
+    private void confirmCompleteRestore(CombinedBackupStore.Preview preview) {
+        new AlertDialog.Builder(this)
+            .setTitle("Replace notes AND game profiles?")
+            .setMessage("The app will first export an emergency copy of your current "
+                + "memories and custom game titles to microSD, then restore both "
+                + "sections and verify them. If writing fails, it attempts rollback. "
+                + "For true backup protection, keep a copy off the card.")
+            .setNegativeButton("Keep current data", null)
+            .setPositiveButton("Restore both", (dialog, action) -> {
+                try {
+                    String detail = combined().restore(preview);
+                    reload();
+                    show(detail);
+                } catch (Exception error) {
+                    reload();
+                    show("RESTORE NOT VERIFIED: " + error.getMessage());
+                }
+            }).show();
+    }
+
     private void confirmBackup() {
         new AlertDialog.Builder(this)
             .setTitle("Create plaintext backup?")
@@ -331,8 +412,12 @@ public final class MemoryLibraryActivity extends Activity {
 
     @Override protected void onActivityResult(int request, int result, Intent data) {
         super.onActivityResult(request, result, data);
-        if (request != PICK_BACKUP || result != RESULT_OK
-                || data == null || data.getData() == null) return;
+        if (result != RESULT_OK || data == null || data.getData() == null) return;
+        if (request == PICK_COMBINED_BACKUP) {
+            previewCompleteBackup(data.getData());
+            return;
+        }
+        if (request != PICK_BACKUP) return;
         final List<MemoryRecord> importRecords;
         try { importRecords = store().inspectBackup(data.getData()); }
         catch (Exception error) {

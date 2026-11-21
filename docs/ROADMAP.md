@@ -177,3 +177,14 @@ See [full square touchscreen QA matrix](SQUARE_TOUCHSCREEN_TESTS.md). Code and C
 - [ ] G3.1 User opt-in per-game context cards with structured facts and pinned notes; explicit corrections and compact memory, no silent screen monitoring.
 - [ ] G4.1 Ephemeral vision (not live until approved): opt-in, in-memory frame-only processing, no destructive access to emulator files, background/foreground capture teardown, storage cap 0 by default.
 - [ ] G5.1 Quiet/Coach/Chatty personality modes and optional game-specific response frequency, only after conversation and performance testing.
+
+
+## Gate 1G — First-day onboarding and unified microSD backup (v0.1.8) [ ]
+- [ ] G1G.1 New setup guide shows actual screen px/dp, Android version, overlay grant and SD read availability. It never claims touch/swivel/PPSSPP success until the user performs a test.
+- [ ] G1G.2 SD write/read/delete remains explicitly user-triggered and does not delete unrelated files. Offline voice setup uses a dedicated Voice Lab and may fail closed when local recognition isn't available.
+- [ ] G1G.3 A privacy-safe copyable diagnostic contains model, display and pass/not-tested statuses only, never memory content, file paths, screenshots, audio or keys.
+- [ ] G1G.4 Unified JSON backup exports both notes and custom game titles, validates SHA-256 and record limits, reads back the file, and preserves notes-only legacy import.
+- [ ] G1G.5 Complete restore rejects corrupt/mismatched/unsupported files before writing, requires two approvals, creates an emergency complete backup, and verifies both restored datasets. Test deliberate partial-write/rollback failure on actual microSD.
+- [ ] G1G.6 Main-branch APK CI, combined-backup rules JUnit, existing full regression, and 720×720 emulator touch/screenshots pass. Device font/rotation/swivel/game test NOT RUN until actual hardware.
+- [ ] G1G.7 DO NOT claim encryption, cross-volume transaction guarantee or protection from microSD hardware failure. Keep separate off-card backups.
+[Detailed setup/backup checklist](FIRST_DAY_SETUP_TESTS.md).

@@ -23,6 +23,7 @@
                 android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
                 android:value="User-enabled floating game companion orb" />
         </service>
+        <activity android:name=".SetupGuideActivity" android:exported="false" />
         <activity android:name=".GameProfilesActivity" android:exported="false" />
         <activity android:name=".MemoryLibraryActivity" android:exported="false" />
         <activity android:name=".VoiceLabActivity" android:exported="false" />
