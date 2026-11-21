@@ -31,7 +31,7 @@ import java.util.List;
 import java.util.UUID;
 
 /** Offline v0.1 memory-shell UI. Does not pretend to be a live AI voice service. */
-public final class MainActivity extends Activity {
+public final class MainActivity extends HandheldActivity {
     private static final int PICK_SD_FOLDER = 10;
     private static final String PREFS = "permission_locator_only";
     private static final String KEY_URI = "sd_tree_uri";
