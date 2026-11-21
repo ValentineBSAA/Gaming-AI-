@@ -131,3 +131,12 @@ Acceptance:
 2. Physical RG Rotate + 512 GB microSD: run Gate 1 tests
 3. Only then integrate live AI voice and persistent semantic memory
 4. Only then implement screenshots and optional vision
+
+
+## Gate 1C — Voice catalog and guided Android access (v0.1.4) [ ]
+The Voice Lab should help users choose *installed* free offline voices without scavenging Android menus. Organize US/UK/other English voices, search via categories, favoriting, and engine-claimed quality; offer direct engine check/install intents and Android TTS settings fallback, then rescan catalog. Downloading actual speech packs occurs in the user's speech-engine UI, not silently in Gaming AI. No assumed gender classification or APK inclusion of voice files.
+- [ ] G1C.1 Branch/PR CI PASS (JVM catalog tests, existing memory tests, PNG/overlay guard, APK upload).
+- [ ] G1C.2 Physical RG Rotate: voice lists categorized, favorites persisted, no crash when none installed; voice data check/installer/settings fallback function or explain unsupported firmware.
+- [ ] G1C.3 After returning from official voice installer, refresh and preview voice offline in Airplane mode; voice data availability and quality verified, without hidden cloud calls.
+- [ ] G1C.4 Existing SD memory/overlay settings retained after upgrade; 720×720 display and swivel pass, PPSSPP still unaffected when Voice Lab not active.
+- [ ] G1C.5 User explicitly approves any third-party download; no automatic installs, external storage relocation claims or credit charging.

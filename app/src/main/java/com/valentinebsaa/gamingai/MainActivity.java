@@ -69,9 +69,9 @@ public final class MainActivity extends Activity {
         setContentView(scroll);
 
         addText(root, "Gaming AI · Rotate", 26, foreground);
-        addText(root, "Prototype 0.1.3  •  Local Voice Lab + tintable orb", 13, muted);
+        addText(root, "Prototype 0.1.4  •  Guided voice setup + tintable orb", 13, muted);
         addText(root, "One companion, many games. Try free offline voice tests; full AI comes later.", 15, foreground);
-        button(root, "Open Voice Lab · no API credits", v -> {
+        button(root, "Open Voice Lab & offline voice guide", v -> {
             Intent voiceLab = new Intent(this, VoiceLabActivity.class);
             voiceLab.putExtra(VoiceLabActivity.EXTRA_GAME,
                 game != null ? String.valueOf(game.getSelectedItem()) : "General");
