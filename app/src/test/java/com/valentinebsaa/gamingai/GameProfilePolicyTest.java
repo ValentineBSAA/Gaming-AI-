@@ -47,7 +47,7 @@ public final class GameProfilePolicyTest {
         } catch (IllegalArgumentException expected) {}
     }
     @Test public void rejectsControlCharactersOversizeAndExcessiveProfiles() {
-        for (String bad : new String[]{"", "   ", "bad\\nname", "x".repeat(65)}) {
+        for (String bad : new String[]{"", "   ", "bad\nname", "x".repeat(65)}) {
             try {
                 GameProfilePolicy.normalize(bad);
                 fail("Unexpected accepted name: " + bad);
