@@ -119,7 +119,7 @@ public final class MainActivity extends Activity {
         button(root, "Dictate note (Android speech input)", this::dictate);
         button(root, "Compact unpinned memories", this::compact);
         button(root, "Refresh saved memories", this::refresh);
-        status = addText(root, "No microphone or screen capture runs in this prototype.", 13, muted);
+        status = addText(root, "Voice Lab uses the microphone only when you tap push-to-talk; no background recording or screen capture.", 13, muted);
         addText(root, "RECENT MEMORIES", 15, foreground);
         recent = addText(root, "Nothing loaded yet.", 13, foreground);
         addText(root, "Privacy: no network permission, screenshots, account, or API keys. " +
