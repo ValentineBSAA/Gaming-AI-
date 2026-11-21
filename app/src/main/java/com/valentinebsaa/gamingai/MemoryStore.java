@@ -77,8 +77,14 @@ public final class MemoryStore {
             if (revision <= 0) return null;
             JSONArray notes = root.getJSONArray("entries");
             List<MemoryRecord> result = new ArrayList<>();
-            if (notes.length() > 2000) return null;
-            for (int i = 0; i < notes.length(); i++) result.add(MemoryRecord.fromJson(notes.getJSONObject(i)));
+            if (notes.length() > MemoryPolicy.MAX_ENTRIES) return null;
+            for (int i = 0; i < notes.length(); i++) {
+                result.add(MemoryRecord.fromJson(notes.getJSONObject(i)));
+            }
+            // Old snapshots without a digest remain readable; all new writes have one.
+            CombinedBackupRules.validate(result, new ArrayList<>());
+            String expected = CombinedBackupRules.sha256(result, new ArrayList<>());
+            if (root.has("sha256") && !expected.equals(root.getString("sha256"))) return null;
             return new Snapshot(revision, result);
         } catch (Exception ignored) {
             // Invalid slot is ignored only if the other slot is valid.
@@ -98,15 +104,19 @@ public final class MemoryStore {
     }
 
     public void save(List<MemoryRecord> records) throws IOException {
-        if (records.size() > MemoryPolicy.MAX_ENTRIES
-                || MemoryPolicy.approxBytes(records) > MemoryPolicy.MAX_BYTES) {
-            throw new IOException("Memory budget reached. Compact unpinned notes first.");
+        final String expectedDigest;
+        try {
+            CombinedBackupRules.validate(records, new ArrayList<>());
+            expectedDigest = CombinedBackupRules.sha256(records, new ArrayList<>());
+        } catch (IllegalArgumentException invalid) {
+            throw new IOException("Memory invalid or budget reached: " + invalid.getMessage(), invalid);
         }
         Snapshot current = bestSnapshot();
         long next = current.revision + 1;
         JSONObject root = new JSONObject();
         try {
             root.put("revision", next);
+            root.put("sha256", expectedDigest);
             JSONArray entries = new JSONArray();
             for (MemoryRecord memory : records) entries.put(memory.toJson());
             root.put("entries", entries);
@@ -125,8 +135,10 @@ public final class MemoryStore {
             stream.flush();
         }
         Snapshot verified = readSnapshot(output);
-        if (verified == null || verified.revision != next || verified.entries.size() != records.size()) {
-            throw new IOException("Memory write verification failed; older snapshot retained.");
+        if (verified == null || verified.revision != next
+                || !expectedDigest.equals(CombinedBackupRules.sha256(
+                    verified.entries, new ArrayList<>()))) {
+            throw new IOException("Memory content readback mismatch; earlier valid snapshot retained.");
         }
     }
 
