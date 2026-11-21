@@ -268,7 +268,7 @@ public final class MemoryLibraryActivity extends Activity {
         if (item == null) { show("Select a memory first."); return; }
         new AlertDialog.Builder(this)
             .setTitle(item.pinned ? "Delete protected memory?" : "Delete this memory?")
-            .setMessage("This permanently removes the selected note from the current "
+            .setMessage("This removes the selected note from the current "
                 + "memory library. Your most recent snapshot may still hold an older copy. "
                 + "Create an external backup first if needed.")
             .setNegativeButton("Cancel", null)
