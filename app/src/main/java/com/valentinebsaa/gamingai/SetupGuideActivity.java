@@ -26,7 +26,7 @@ import java.util.Locale;
  * Guided first-day verification, with honest PASS / NEEDS ACTION / NOT TESTED
  * indicators. Does not silently request mic, grant overlays or record gameplay.
  */
-public final class SetupGuideActivity extends Activity {
+public final class SetupGuideActivity extends HandheldActivity {
     private static final String URI_PREFS = "permission_locator_only";
     private static final String KEY_URI = "sd_tree_uri";
     private static final String CHECKS_PREFS = "first_day_device_manual_checks";
