@@ -18,6 +18,10 @@ public final class SquareLayoutPolicy {
         return widthDp < 320 ? 180 : widthDp < 480 ? 216 : 248;
     }
 
+    public static int quickActionColumns(int widthDp) {
+        return widthDp < 320 ? 1 : 2;
+    }
+
     public static int presetWidthDp(int widthDp) {
         return widthDp < 400 ? 96 : 112;
     }
