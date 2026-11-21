@@ -62,10 +62,9 @@ public final class MainActivity extends Activity {
         setContentView(mainScroll);
         mainScroll.requestFocus();
 
-        addText(root, "Gaming AI · Rotate", 26, foreground);
-        addText(root, "Prototype 0.1.6  •  Premium UI + memory controls", 13, muted);
-        addText(root, "One companion, many games. Free offline Voice Lab; full AI comes later.",
-            15, foreground);
+        TouchUi.header(this, root, "Gaming AI", "ROTATE • OFFLINE COMPANION");
+        addText(root, "v0.1.6  •  Your private gaming companion, ready for its first device test.",
+            13, muted);
 
         LinearLayout shortcuts = new LinearLayout(this);
         shortcuts.setOrientation(LinearLayout.HORIZONTAL);
@@ -179,6 +178,7 @@ public final class MainActivity extends Activity {
         text.setText(content);
         text.setTextSize(size);
         text.setTextColor(color);
+        TouchUi.decorateLabel(text, content, size);
         text.setPadding(0, dp(9), 0, dp(9));
         parent.addView(text, new LinearLayout.LayoutParams(-1, -2));
         return text;
