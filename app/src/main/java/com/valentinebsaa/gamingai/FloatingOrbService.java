@@ -35,6 +35,7 @@ public final class FloatingOrbService extends Service {
     public static final String ACTION_UPDATE = "com.valentinebsaa.gamingai.UPDATE";
     public static final String ACTION_STOP = "com.valentinebsaa.gamingai.STOP";
     public static final String ACTION_THEME = "com.valentinebsaa.gamingai.THEME";
+    public static final String ACTION_RESET_POSITION = "com.valentinebsaa.gamingai.RESET_POSITION";
     public static final String EXTRA_STATUS = "orb_status";
     private static final String CHANNEL_ID = "gamingai_orb";
     private static final int NOTIFICATION_ID = 42;
@@ -93,6 +94,16 @@ public final class FloatingOrbService extends Service {
         }
         ensureForegroundNotification();
         if (panel == null) createOrb();
+        if (intent != null && ACTION_RESET_POSITION.equals(intent.getAction())
+                && panel != null && params != null && windows != null) {
+            DisplayMetrics screen = new DisplayMetrics();
+            windows.getDefaultDisplay().getMetrics(screen);
+            params.x = Math.max(0, screen.widthPixels - dp(108));
+            params.y = Math.min(Math.max(0, screen.heightPixels - dp(103)), dp(100));
+            windows.updateViewLayout(panel, params);
+            getSharedPreferences("orb_position", MODE_PRIVATE).edit()
+                .putInt("x", params.x).putInt("y", params.y).apply();
+        }
         if (intent != null && intent.hasExtra(EXTRA_STATUS)) {
             currentState = OrbStatus.normalize(intent.getStringExtra(EXTRA_STATUS));
         }
