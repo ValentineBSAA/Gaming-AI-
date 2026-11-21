@@ -11,6 +11,7 @@ on:
     paths:
       - '.github/workflows/square-emulator.yml'
       - 'scripts/square_emulator_smoke.sh'
+      - 'app/**'
   workflow_dispatch:
 
 permissions:
@@ -52,7 +53,7 @@ jobs:
           arch: x86_64
           profile: pixel_2
           disable-animations: true
-          emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim
+          emulator-options: -no-window -gpu swiftshader -feature -Vulkan -no-snapshot -noaudio -no-boot-anim
           script: |
             gradle --no-daemon :app:assembleDebug
             bash scripts/square_emulator_smoke.sh
