@@ -81,6 +81,71 @@ done
 sleep 2
 capture "voice_header_720_density320_font130"
 
+# Verify the new premium 2×2 quick-grid opens three other actual app screens.
+# The UI hierarchy only sees currently visible widgets: scroll if needed.
+open_quick_tile() {
+  local label="$1"
+  local output="$2"
+  adb shell am force-stop com.valentinebsaa.gamingai
+  adb shell am start -W -n com.valentinebsaa.gamingai/.MainActivity >/dev/null
+  sleep 2
+  for attempt in 1 2 3 4 5 6; do
+    adb shell uiautomator dump /sdcard/window.xml >/dev/null
+    adb exec-out cat /sdcard/window.xml > square-evidence/tile-search.xml
+    if TILE_LABEL="$label" python3 - <<'PY' > square-evidence/tile-tap.txt
+import os
+import re
+from xml.etree import ElementTree
+label = os.environ["TILE_LABEL"]
+root = ElementTree.parse("square-evidence/tile-search.xml").getroot()
+for node in root.iter("node"):
+    if node.get("text", "").strip() != label:
+        continue
+    match = re.fullmatch(r"\[(\d+),(\d+)\]\[(\d+),(\d+)\]",
+        node.get("bounds", ""))
+    if not match:
+        continue
+    x1, y1, x2, y2 = map(int, match.groups())
+    if x2 > x1 and y2 > y1 and y1 >= 63 and y2 <= 594:
+        print((x1 + x2)//2, (y1 + y2)//2)
+        break
+else:
+    raise SystemExit(1)
+PY
+    then
+      read -r tapx tapy < square-evidence/tile-tap.txt
+      adb shell input tap "$tapx" "$tapy"
+      sleep 3
+      capture "$output"
+      return
+    fi
+    adb shell input swipe 360 515 360 235 300
+    sleep 1
+  done
+  echo "FAIL: Could not tap premium tile: $label"
+  exit 1
+}
+
+open_quick_tile "Memories" "memory_library_720_density320_font130"
+open_quick_tile "Game Profiles" "game_profiles_720_density320_font130"
+open_quick_tile "First-day Setup" "first_day_setup_720_density320_font130"
+
+python3 - <<'PY'
+from xml.etree import ElementTree
+cases = {
+    "memory_library_720_density320_font130": ("Memory Library", "FIND A MEMORY"),
+    "game_profiles_720_density320_font130": ("Game Profiles", "ADD A GAME"),
+    "first_day_setup_720_density320_font130": ("First-day Setup", "DISPLAY & TOUCH"),
+}
+for file, required in cases.items():
+    root = ElementTree.parse("square-evidence/" + file + ".xml").getroot()
+    labels = [node.get("text", "") for node in root.iter("node")]
+    assert any(any(word in text for word in required) for text in labels), (
+        "FAIL: navigated screen not recognized: " + file
+    )
+print("PASS: three additional quick-action tiles opened expected pages")
+PY
+
 adb shell am force-stop com.valentinebsaa.gamingai
 adb shell wm density 400
 adb shell settings put system font_scale 1.5
