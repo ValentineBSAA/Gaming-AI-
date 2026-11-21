@@ -65,9 +65,21 @@ python3 - <<'PY'
 from xml.etree import ElementTree
 root = ElementTree.parse("square-evidence/voice_720_density320_font130.xml").getroot()
 texts = [x.get("text", "") for x in root.iter("node")]
-assert any("Voice Lab" in x for x in texts), "FAIL: Voice Lab did not open"
-print("PASS: Voice Lab opens by touching the button on 720x720 viewport")
+# Android may restore/scroll a tall view so its page title is off-screen.
+# Inspect controls unique to the Voice Lab rather than a nonvisible header.
+assert any("All English voices" in x or "US English" in x or
+           "GUIDED OFFLINE VOICE SETUP" in x for x in texts), (
+    "FAIL: Voice Lab controls not found after touch navigation"
+)
+print("PASS: Voice Lab UI controls are present after touchscreen navigation")
 PY
+
+# Swipe down to capture the actual top header for UI review, not only the voice list.
+for i in 1 2 3 4; do
+  adb shell input swipe 360 200 360 520 260
+done
+sleep 2
+capture "voice_header_720_density320_font130"
 
 adb shell am force-stop com.valentinebsaa.gamingai
 adb shell wm density 400
