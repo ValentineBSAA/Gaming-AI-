@@ -63,7 +63,7 @@ public final class MainActivity extends Activity {
         mainScroll.requestFocus();
 
         addText(root, "Gaming AI · Rotate", 26, foreground);
-        addText(root, "Prototype 0.1.5  •  Square touchscreen polish", 13, muted);
+        addText(root, "Prototype 0.1.6  •  Premium UI + memory controls", 13, muted);
         addText(root, "One companion, many games. Free offline Voice Lab; full AI comes later.",
             15, foreground);
 
@@ -136,6 +136,8 @@ public final class MainActivity extends Activity {
         button(memoryCard, "Offline push-to-talk · Open Voice Lab", v -> openVoiceLab());
         button(memoryCard, "Compact unpinned memories", this::compact);
         button(memoryCard, "Refresh saved memories", this::refresh);
+        button(memoryCard, "Open Memory Library · edit, pin, backup", v ->
+            startActivity(new Intent(this, MemoryLibraryActivity.class)));
         status = addText(memoryCard, "No recording occurs on this screen. "
             + "Voice Lab's microphone activates only when requested.", 13, muted);
         addText(memoryCard, "RECENT MEMORIES", 15, foreground);
@@ -450,6 +452,11 @@ public final class MainActivity extends Activity {
                     + " records; protected entries retained.");
             refresh();
         } catch (Exception e) { setStatus("Compaction not applied: " + e.getMessage()); }
+    }
+
+    @Override protected void onResume() {
+        super.onResume();
+        if (overview != null && recent != null) refresh();
     }
 
     private void refresh(View ignored) { refresh(); }
