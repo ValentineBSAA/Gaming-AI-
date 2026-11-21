@@ -188,3 +188,12 @@ See [full square touchscreen QA matrix](SQUARE_TOUCHSCREEN_TESTS.md). Code and C
 - [ ] G1G.6 Main-branch APK CI, combined-backup rules JUnit, existing full regression, and 720×720 emulator touch/screenshots pass. Device font/rotation/swivel/game test NOT RUN until actual hardware.
 - [ ] G1G.7 DO NOT claim encryption, cross-volume transaction guarantee or protection from microSD hardware failure. Keep separate off-card backups.
 [Detailed setup/backup checklist](FIRST_DAY_SETUP_TESTS.md).
+
+
+## Gate 1H — Compact premium dashboard and voice summary (v0.1.9) [ ]
+- [ ] G1H.1 720px square main screen at 320dpi and 130% font displays compact orb hero plus useful 2×2 quick-action tiles, with no horizontal clipping. At 400dpi/150% and extreme 240dp, switch to one column without hiding actions.
+- [ ] G1H.2 Quick actions for Voice Lab, Memory Library, Game Profiles, Setup work independently, while secondary Orb/microSD/Device rail still jumps correctly.
+- [ ] G1H.3 Voice Lab one-line diagnostics expand/collapse without losing voice choices; app maintains native TTS and on-device microphone rules.
+- [ ] G1H.4 Android unit tests, emulator touch screenshots, original memory, backup, orb, and privacy regression pass on merged main; retail RG Rotate hardware **NOT RUN**.
+- [ ] G1H.5 Review actual screenshots for spacing, glow and icon balance against earlier labeled simulated concepts; do not claim pixel-perfect equivalence without device testing.
+See [GitHub issue #16](https://github.com/ValentineBSAA/Gaming-AI-/issues/16).
