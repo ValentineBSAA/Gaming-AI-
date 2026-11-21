@@ -6,6 +6,7 @@ import android.content.res.ColorStateList;
 import android.graphics.Color;
 import android.graphics.PorterDuff;
 import android.widget.FrameLayout;
+import android.widget.GridLayout;
 import android.widget.ImageView;
 import android.widget.TextView;
 import android.graphics.drawable.GradientDrawable;
@@ -88,6 +89,83 @@ public final class TouchUi {
         p.bottomMargin = dp(activity, 12);
         parent.addView(card, p);
         return card;
+    }
+
+    /** Adaptive 2-column dashboard on 720px square; one column when dp gets narrow. */
+    public static GridLayout quickGrid(Activity activity, LinearLayout parent) {
+        GridLayout grid = new GridLayout(activity);
+        grid.setColumnCount(SquareLayoutPolicy.quickActionColumns(widthDp(activity)));
+        grid.setUseDefaultMargins(false);
+        grid.setAlignmentMode(GridLayout.ALIGN_BOUNDS);
+        LinearLayout.LayoutParams frame = new LinearLayout.LayoutParams(-1, -2);
+        frame.bottomMargin = dp(activity, 10);
+        parent.addView(grid, frame);
+        return grid;
+    }
+
+    public static void quickTile(Activity activity, GridLayout grid, String title,
+            String detail, int accent, View.OnClickListener action) {
+        LinearLayout tile = new LinearLayout(activity);
+        tile.setOrientation(LinearLayout.VERTICAL);
+        tile.setGravity(android.view.Gravity.CENTER_VERTICAL);
+        tile.setPadding(dp(activity, 13), dp(activity, 11),
+            dp(activity, 13), dp(activity, 11));
+        tile.setMinimumHeight(dp(activity, 88));
+        tile.setClickable(true);
+        tile.setFocusable(true);
+        tile.setContentDescription(title + ": " + detail);
+        GradientDrawable surface = new GradientDrawable(
+            GradientDrawable.Orientation.TL_BR,
+            new int[]{0xff30415c, 0xff202b44});
+        surface.setCornerRadius(dp(activity, 18));
+        surface.setStroke(dp(activity, 1), accent);
+        tile.setBackground(new RippleDrawable(
+            ColorStateList.valueOf(0x66FFFFFF), surface, null));
+        TextView heading = new TextView(activity);
+        heading.setText(title);
+        heading.setTextColor(INK);
+        heading.setTextSize(15);
+        heading.setTypeface(android.graphics.Typeface.DEFAULT,
+            android.graphics.Typeface.BOLD);
+        heading.setSingleLine(false);
+        heading.setMaxLines(2);
+        tile.addView(heading, new LinearLayout.LayoutParams(-1, -2));
+
+        TextView description = new TextView(activity);
+        description.setText(detail);
+        description.setTextColor(accent);
+        description.setTextSize(11);
+        description.setSingleLine(false);
+        description.setMaxLines(3);
+        description.setPadding(0, dp(activity, 5), 0, 0);
+        tile.addView(description, new LinearLayout.LayoutParams(-1, -2));
+
+        GridLayout.LayoutParams params = new GridLayout.LayoutParams();
+        params.width = 0;
+        params.height = GridLayout.LayoutParams.WRAP_CONTENT;
+        params.columnSpec = GridLayout.spec(GridLayout.UNDEFINED, 1, 1f);
+        params.setMargins(dp(activity, 3), dp(activity, 3),
+            dp(activity, 3), dp(activity, 3));
+        grid.addView(tile, params);
+        tile.setOnClickListener(view -> {
+            view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP);
+            action.onClick(view);
+        });
+        tile.setOnTouchListener((view, event) -> {
+            if (reduceMotion(activity)) return false;
+            int type = event.getActionMasked();
+            if (type == MotionEvent.ACTION_DOWN) {
+                view.animate().cancel();
+                view.animate().scaleX(.985f).scaleY(.985f)
+                    .setDuration(90).start();
+            } else if (type == MotionEvent.ACTION_UP
+                    || type == MotionEvent.ACTION_CANCEL) {
+                view.animate().cancel();
+                view.animate().scaleX(1f).scaleY(1f)
+                    .setDuration(130).start();
+            }
+            return false;
+        });
     }
 
     public static HorizontalScrollView rail(Activity activity, LinearLayout parent) {
@@ -185,7 +263,7 @@ public final class TouchUi {
         parent.addView(hero, frame);
 
         FrameLayout orb = new FrameLayout(activity);
-        int orbSize = dp(activity, widthDp(activity) < 320 ? 52 : 64);
+        int orbSize = dp(activity, widthDp(activity) < 400 ? 48 : 60);
         hero.addView(orb, new LinearLayout.LayoutParams(orbSize, orbSize));
         int[] images = {R.drawable.orb_core, R.drawable.orb_petals, R.drawable.orb_ring};
         for (int resource : images) {
@@ -204,7 +282,7 @@ public final class TouchUi {
         TextView name = new TextView(activity);
         name.setText(title);
         name.setTextColor(INK);
-        name.setTextSize(widthDp(activity) < 320 ? 19 : 23);
+        name.setTextSize(widthDp(activity) < 400 ? 19 : 22);
         name.setTypeface(android.graphics.Typeface.DEFAULT,
             android.graphics.Typeface.BOLD);
         name.setSingleLine(false);

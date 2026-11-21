@@ -59,34 +59,34 @@ public final class MainActivity extends Activity {
         mainScroll.requestFocus();
 
         TouchUi.header(this, root, "Gaming AI", "ROTATE • OFFLINE COMPANION");
-        addText(root, "v0.1.8  •  Guided setup and unified microSD backups.",
-            13, muted);
-
-        LinearLayout shortcuts = new LinearLayout(this);
-        shortcuts.setOrientation(LinearLayout.HORIZONTAL);
-        TouchUi.rail(this, root).addView(shortcuts);
-
-        final LinearLayout startHere = TouchUi.card(this, root);
-        addText(startHere, "START HERE · ROTATE READINESS", 15, foreground);
-        addText(startHere, "New device? Follow the guided checklist for your "
-            + "screen, microSD, offline voice and overlay. Every test is labeled "
-            + "PASS, NEEDS ACTION or NOT TESTED.", 12, muted);
-        button(startHere, "Open First-day Setup & Diagnostic Report",
-            v -> startActivity(new Intent(this, SetupGuideActivity.class)));
+        addText(root, "v0.1.9 • Offline companion", 12, muted);
+        android.widget.GridLayout quick = TouchUi.quickGrid(this, root);
 
         final LinearLayout voiceCard = TouchUi.card(this, root);
         final LinearLayout storageCard = TouchUi.card(this, root);
         final LinearLayout orbCard = TouchUi.card(this, root);
         final LinearLayout memoryCard = TouchUi.card(this, root);
         final LinearLayout deviceCard = TouchUi.card(this, root);
-        TouchUi.chip(this, shortcuts, "Voice",
-            v -> TouchUi.jumpTo(this, mainScroll, voiceCard));
+
+        TouchUi.quickTile(this, quick, "Voice Lab", "Hear offline voices",
+            TouchUi.TEAL, v -> openVoiceLab());
+        TouchUi.quickTile(this, quick, "Memories", "Review & back up",
+            TouchUi.LAVENDER, v ->
+                startActivity(new Intent(this, MemoryLibraryActivity.class)));
+        TouchUi.quickTile(this, quick, "Game Profiles", "Add your games",
+            TouchUi.LAVENDER, v ->
+                startActivity(new Intent(this, GameProfilesActivity.class)));
+        TouchUi.quickTile(this, quick, "First-day Setup", "Check your Rotate",
+            TouchUi.TEAL, v ->
+                startActivity(new Intent(this, SetupGuideActivity.class)));
+
+        LinearLayout shortcuts = new LinearLayout(this);
+        shortcuts.setOrientation(LinearLayout.HORIZONTAL);
+        TouchUi.rail(this, root).addView(shortcuts);
+        TouchUi.chip(this, shortcuts, "Orb & colors",
+            v -> TouchUi.jumpTo(this, mainScroll, orbCard));
         TouchUi.chip(this, shortcuts, "microSD",
             v -> TouchUi.jumpTo(this, mainScroll, storageCard));
-        TouchUi.chip(this, shortcuts, "Orb",
-            v -> TouchUi.jumpTo(this, mainScroll, orbCard));
-        TouchUi.chip(this, shortcuts, "Memories",
-            v -> TouchUi.jumpTo(this, mainScroll, memoryCard));
         TouchUi.chip(this, shortcuts, "Device",
             v -> TouchUi.jumpTo(this, mainScroll, deviceCard));
 

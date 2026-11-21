@@ -20,6 +20,13 @@ public final class SquareLayoutPolicyTest {
         assertEquals(216, SquareLayoutPolicy.voiceListHeightDp(360));
         assertEquals(248, SquareLayoutPolicy.voiceListHeightDp(720));
     }
+    @Test public void quickGridSwitchesToSingleColumnAtNarrowDp() {
+        assertEquals(1, SquareLayoutPolicy.quickActionColumns(240));
+        assertEquals(1, SquareLayoutPolicy.quickActionColumns(288));
+        assertEquals(2, SquareLayoutPolicy.quickActionColumns(320));
+        assertEquals(2, SquareLayoutPolicy.quickActionColumns(360));
+        assertEquals(2, SquareLayoutPolicy.quickActionColumns(720));
+    }
     @Test public void paddingIsBasedOnDpNotRawPixels() {
         assertEquals(10, SquareLayoutPolicy.paddingDp(280));
         assertEquals(14, SquareLayoutPolicy.paddingDp(360));

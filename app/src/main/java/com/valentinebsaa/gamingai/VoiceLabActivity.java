@@ -70,6 +70,8 @@ public final class VoiceLabActivity extends Activity {
     private TextView status;
     private TextView response;
     private TextView diagnostics;
+    private boolean diagnosticsExpanded;
+    private String diagnosticDetails = "";
     private TextView levels;
     private SeekBar rateBar;
     private SeekBar pitchBar;
@@ -89,10 +91,16 @@ public final class VoiceLabActivity extends Activity {
 
         TouchUi.header(this, root, "Voice Lab", "OFFLINE AUDIO • $0 API CREDITS");
         addText(root, "Audition voices for " + game, 13, muted);
-        addText(root, "A scripted voice demo, not a generative AI. No game screen access, "
-            + "background microphone, paid credits or automatic downloads.", 13, foreground);
+        addText(root, "Scripted offline demo • No credits or background listening.",
+            12, muted);
         status = addText(root, "Initializing Android's voice engine...", 13, muted);
         diagnostics = addText(root, "Checking installed offline voices...", 12, muted);
+        diagnostics.setClickable(true);
+        diagnostics.setFocusable(true);
+        diagnostics.setOnClickListener(v -> {
+            diagnosticsExpanded = !diagnosticsExpanded;
+            updateDiagnostics();
+        });
 
         LinearLayout shortcuts = new LinearLayout(this);
         shortcuts.setOrientation(LinearLayout.HORIZONTAL);
@@ -283,6 +291,11 @@ public final class VoiceLabActivity extends Activity {
             SpeechRecognizer.isOnDeviceRecognitionAvailable(this);
     }
 
+    private boolean hasSafeOfflineRecognition() {
+        try { return hasOfflineRecognition(); }
+        catch (Exception ignored) { return false; }
+    }
+
     private void updateDiagnostics() {
         String recognizerMode;
         try {
@@ -297,11 +310,20 @@ public final class VoiceLabActivity extends Activity {
             try {
                 if (speech != null) engine = speech.getDefaultEngine();
             } catch (Exception ignored) {}
-            diagnostics.setText("Android voice engine: " + engine
+            diagnosticDetails = "Android voice engine: " + engine
                 + "\nOffline English voices advertised: " + offlineVoices.size()
-                + "  •  On-device recognition: " + recognizerMode
-                + "\nA voice marked offline may still need its data installed; preview it "
-                + "in Airplane mode before relying on it.");
+                + "\nOn-device recognition: " + recognizerMode
+                + "\nA voice marked offline may still need its data installed. "
+                + "Preview it in Airplane mode before relying on it.";
+            diagnostics.setText(diagnosticsExpanded ? diagnosticDetails
+                + "\nTap to collapse diagnostics."
+                : "Offline voices: " + offlineVoices.size()
+                    + " • On-device input: "
+                    + (hasSafeOfflineRecognition() ? "Available" : "Unavailable")
+                    + "  •  Tap for details");
+            diagnostics.setContentDescription(diagnosticsExpanded
+                ? "Voice diagnostics expanded. Tap to collapse."
+                : "Voice diagnostics collapsed. Tap to expand.");
         }
     }
 
