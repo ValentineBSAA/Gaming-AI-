@@ -103,6 +103,7 @@ public final class MainActivity extends HandheldActivity {
         addText(orbCard, "FLOATING COMPANION", 15, foreground);
         button(orbCard, "Show draggable orb over games", this::enableOverlay);
         button(orbCard, "Hide companion orb", this::hideOverlay);
+        button(orbCard, "Reset orb position · top right", v -> resetOrbPosition());
         setupOrbColors(orbCard);
         addText(orbCard, "Optional overlay. Drag to reposition and tap to return here. "
             + "The indicator reports the app's last state, not game awareness.", 12, muted);
@@ -236,6 +237,27 @@ public final class MainActivity extends HandheldActivity {
                 .putBoolean("overlay_enabled", false).apply();
             setStatus("Unable to start overlay: " + e.getMessage());
         }
+    }
+
+    private void resetOrbPosition() {
+        getSharedPreferences("orb_position", MODE_PRIVATE).edit()
+            .remove("x").remove("y").apply();
+        boolean showing = getSharedPreferences(PREFS, MODE_PRIVATE)
+            .getBoolean("overlay_enabled", false) && Settings.canDrawOverlays(this);
+        if (showing) {
+            try {
+                Intent service = new Intent(this, FloatingOrbService.class);
+                service.setAction(FloatingOrbService.ACTION_RESET_POSITION);
+                if (Build.VERSION.SDK_INT >= 26) startForegroundService(service);
+                else startService(service);
+                setStatus("Orb reset to its top-right starting position.");
+                return;
+            } catch (Exception error) {
+                setStatus("Position saved for next time. Hide and reopen the orb to refresh.");
+                return;
+            }
+        }
+        setStatus("Orb position reset for next time you show it. The overlay stays off.");
     }
 
     private void hideOverlay(View v) {
