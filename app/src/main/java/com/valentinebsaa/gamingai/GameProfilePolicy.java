@@ -25,10 +25,12 @@ public final class GameProfilePolicy {
 
     public static String normalize(String name) {
         if (name == null) throw new IllegalArgumentException("Enter a game title.");
+        // Reject multiline/control input rather than silently flattening it.
+        if (name.matches("(?s).*[\\p{Cntrl}].*"))
+            throw new IllegalArgumentException("Game names cannot contain line breaks or control characters.");
         String result = name.trim().replaceAll("\\s+", " ");
         if (result.length() < 1 || result.length() > MAX_NAME
-                || "All games".equalsIgnoreCase(result)
-                || result.matches(".*[\\p{Cntrl}].*")) {
+                || "All games".equalsIgnoreCase(result)) {
             throw new IllegalArgumentException("Use a game name of 1–64 characters.");
         }
         return result;
