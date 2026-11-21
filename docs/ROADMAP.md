@@ -150,3 +150,12 @@ The Voice Lab should help users choose *installed* free offline voices without s
 - [ ] G1D.5 Device Readiness panel and existing SD memory/orb/voice behavior regressions; main generic voice input route disabled to avoid accidental cloud recognition.
 - [ ] G1D.6 Physical RG Rotate hardware, swivel and PPSSPP checks with screenshots, RAM and battery metrics. **Not run until hardware**.
 See [full square touchscreen QA matrix](SQUARE_TOUCHSCREEN_TESTS.md). Code and CI green are not visual screenshot verification.
+
+
+## Gate 1E — Premium interface and safe Memory Library (v0.1.6) [ ]
+- [ ] G1E.1 Android CI passes after integration; unit tests cover filtering, editing identity preservation, pinning and deletion, plus previous voice/orb/square tests.
+- [ ] G1E.2 Shared midnight-glass/violet/teal visual system has consistent spacing, sections, hero, and performant touch feedback across all three screens.
+- [ ] G1E.3 Export plaintext JSON inside selected microSD with readback; backup preview/restore with validation and dual confirmations; no external game files modified.
+- [ ] G1E.4 Demonstrate editing and manual deletion of protected notes, restore from export, SD removal/revoke, corrupted backup, and no memory saved internally.
+- [ ] G1E.5 720×720 screenshots at multiple density/font combinations, full accessibility and swipe gestures; real RG Rotate physical tests required before marked complete.
+[Visual language, safety and detailed acceptance](PREMIUM_UI_SPEC.md).
