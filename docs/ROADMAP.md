@@ -47,6 +47,22 @@ Acceptance:
 - G2.6 Permission revoked, no network, provider outage, revoked token: clear error; offline memory shell remains usable.
 - G2.7 Credentials held by a secure token broker, never stored in GitHub/CI, ROM dumps, logs, or client APK.
 
+
+
+### Voice quality decision gate (added 2026-11-21)
+Earlier voice experiments were unsatisfactory; **do not revive Piper or a multi-hop Whisper → LLM → Piper voice chain**. Prioritize a live two-way, speech-to-speech API with one stable feminine voice/personality across games. Initial shortlist: **ElevenLabs realtime/ElevenAgents** vs **OpenAI Realtime**; no vendor chosen yet, credentials or paid subscriptions must not be added without approval.
+
+- [ ] G2.A: Audition at least two licensed voice options on-device (each with the *same* 10 scripted lines) for natural prosody, pronunciation, timbre, continuity, and nonrobotic expression; record feedback before integrating.
+- [ ] G2.B: Record median/p95 end-of-turn-to-first-audio delay and barge-in behavior; disqualify choppy, delayed or uninterruptible output.
+- [ ] G2.C: Verify game audio and voice are mixed rather than mutually pausing, and that optional ducking, mute, earbud routing, headset unplug, and Bluetooth reconnect do not break PPSSPP.
+- [ ] G2.D: Support push-to-talk by default, optional hands-free/voice activation only after a noise/false-trigger test; clear mic/live connection status, quiet mode and instant stop.
+- [ ] G2.E: Keep orb states tied to actual session events (connecting/listening/responding/muted/error); no fake AI presence, no always-on recording by default.
+- [ ] G2.F: Save *only* selected compact, inspectable memory summaries on microSD; no raw audio recording by default. Test stop/restart, SD removal, no network, and transcript deletion.
+- [ ] G2.G: Have an explicit per-session cost ceiling/usage indicator and graceful text/offline-note fallback. Secure ephemeral session tokens from a server-side broker; never include permanent API keys in the APK.
+- [ ] G2.H: On-device listening test: three target PSP games, quiet environments vs game audio, 10 × 15-minute sessions, no noticeable input stealing or unacceptable heat/battery drain.
+
+**Gate 2 status: DESIGN ONLY.** Current v0.1.2 uses Android speech input just to dictate offline notes, not conversational voice or speech playback.
+
 ## Gate 3 — Long-term learning (v0.3) [ ]
 Deliverables: stable fact records, per-game profiles, session summaries, confidence/provenance, opt-in carryover, user-visible memory controls and backup.
 Acceptance:
