@@ -21,6 +21,28 @@ adb shell am start -W -n com.valentinebsaa.gamingai/.MainActivity
 sleep 3
 capture "main_720_density320_font130"
 
+# At the default 720-square density/font setting all four premium quick actions
+# must fit above the bottom navigation bar, not merely exist offscreen.
+python3 - <<'PY'
+from xml.etree import ElementTree
+import re
+root = ElementTree.parse("square-evidence/main_720_density320_font130.xml").getroot()
+expected = {"Voice Lab", "Memories", "Game Profiles", "First-day Setup"}
+visible = set()
+for node in root.iter("node"):
+    title = node.get("text", "")
+    if title not in expected:
+        continue
+    match = re.fullmatch(r"\[(\d+),(\d+)\]\[(\d+),(\d+)\]",
+        node.get("bounds", ""))
+    if match:
+        x1, y1, x2, y2 = map(int, match.groups())
+        if x2 > x1 and y2 > y1 and y2 <= 594:
+            visible.add(title)
+assert expected == visible, "FAIL: premium quick actions clipped: " + repr(expected - visible)
+print("PASS: four premium dashboard actions visible without scrolling")
+PY
+
 # Scroll the 720x720 dashboard until the action is actually inside the viewport.
 # UIAutomator only exposes currently laid-out portions of a long ScrollView.
 for attempt in 1 2 3 4 5 6 7 8; do
