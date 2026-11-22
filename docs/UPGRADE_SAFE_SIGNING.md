@@ -5,6 +5,12 @@ Every fresh GitHub Actions runner can generate a different Android **debug keyst
 
 **Decision:** from the first long-term RG Rotate installation onward, use a stable privately signed APK. Never use a public/committed keystore or assume temporary runner debug keys match. An app signed with a different cert cannot upgrade an installed APK with the same app ID without uninstalling.
 
+## One-click Windows automation (recommended)
+
+Instead of manually creating and pasting four GitHub secrets, download the **gaming-ai-windows-signing-setup** artifact from a successful Android workflow, extract the ZIP and run `START-GAMING-AI-SIGNING.cmd` after reviewing the included script. It guides you through installing prerequisites, private keystore creation/reuse, required offline backup, encrypted GitHub CLI secret upload, and starting a signed build on `main`. The utility itself runs locally on Windows, not in ChatGPT.
+
+Full guide: [Windows signing automation](WINDOWS_SIGNING_AUTOMATION.md). The existing manual process below remains an alternative.
+
 ## One-time owner-controlled signing setup (Windows 11)
 
 Do this on your own trusted Windows PC, not in this chat, and **never paste the key or passwords into an AI conversation, issue or repository**.
