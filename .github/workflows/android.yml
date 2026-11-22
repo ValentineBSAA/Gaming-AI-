@@ -36,6 +36,8 @@ jobs:
           gradle-version: '8.7'
       - name: Preflight release privacy and packaging policies
         run: python3 scripts/release_preflight.py
+      - name: Check Windows signing secret and workflow safety
+        run: python3 scripts/check_windows_signing.py
       - name: Validate grayscale PNG layers and alpha
         run: python3 scripts/check_orb_assets.py
       - name: Run unit tests and build
@@ -50,7 +52,7 @@ jobs:
       # Release signing must survive across APK versions. No key in GitHub source.
       # Without the four repository secrets we upload debug-only testing builds.
       - name: Recover private stable signing key when configured
-        if: github.event_name == 'push'
+        if: github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
         env:
           SIGNING_B64: ${{ secrets.GAMING_AI_KEYSTORE_BASE64 }}
           STORE_PASS: ${{ secrets.GAMING_AI_RELEASE_STORE_PASSWORD }}
@@ -72,7 +74,7 @@ jobs:
           echo "GAMING_AI_RELEASE_KEYSTORE_PATH=$RUNNER_TEMP/gaming-ai-release.jks" >> "$GITHUB_ENV"
 
       - name: Build and verify stable signed APK when available
-        if: github.event_name == 'push'
+        if: github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
         env:
           GAMING_AI_RELEASE_STORE_PASSWORD: ${{ secrets.GAMING_AI_RELEASE_STORE_PASSWORD }}
           GAMING_AI_RELEASE_KEY_ALIAS: ${{ secrets.GAMING_AI_RELEASE_KEY_ALIAS }}
@@ -92,10 +94,29 @@ jobs:
           echo "Stable signing APK verified. Keep keystore and passwords backed up OFF the microSD."
 
       - name: Upload stable-signed upgradeable APK (when configured)
-        if: github.event_name == 'push'
+        if: github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
         uses: actions/upload-artifact@v4
         with:
           name: gaming-ai-rotate-v0.2.0-signed
           path: app/build/outputs/apk/release/app-release.apk
           if-no-files-found: ignore
 
+
+  windows-signing-parse:
+    runs-on: windows-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate Windows PowerShell 5.1 signing script syntax
+        shell: powershell
+        run: |
+          $tokens = $null
+          $errors = $null
+          $source = Join-Path $env:GITHUB_WORKSPACE 'scripts\windows\Setup-GamingAISigning.ps1'
+          [void][System.Management.Automation.Language.Parser]::ParseFile($source, [ref]$tokens, [ref]$errors)
+          if ($errors.Count -ne 0) {
+            $errors | ForEach-Object { Write-Error $_.Message }
+            exit 1
+          }
+          Write-Host "PASS: Windows PowerShell 5.1 script parses with no errors"
