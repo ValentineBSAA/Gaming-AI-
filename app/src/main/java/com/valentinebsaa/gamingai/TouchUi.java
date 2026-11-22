@@ -101,7 +101,7 @@ public final class TouchUi {
         grid.setUseDefaultMargins(false);
         grid.setAlignmentMode(GridLayout.ALIGN_BOUNDS);
         LinearLayout.LayoutParams frame = new LinearLayout.LayoutParams(-1, -2);
-        frame.bottomMargin = dp(activity, 10);
+        frame.bottomMargin = dp(activity, 6);
         parent.addView(grid, frame);
         return grid;
     }
@@ -111,9 +111,9 @@ public final class TouchUi {
         LinearLayout tile = new LinearLayout(activity);
         tile.setOrientation(LinearLayout.VERTICAL);
         tile.setGravity(android.view.Gravity.CENTER_VERTICAL);
-        tile.setPadding(dp(activity, 13), dp(activity, 11),
-            dp(activity, 13), dp(activity, 11));
-        tile.setMinimumHeight(dp(activity, 88));
+        tile.setPadding(dp(activity, 12), dp(activity, 8),
+            dp(activity, 12), dp(activity, 8));
+        tile.setMinimumHeight(dp(activity, 72));
         tile.setClickable(true);
         tile.setFocusable(true);
         tile.setContentDescription(title + ": " + detail);
@@ -252,7 +252,7 @@ public final class TouchUi {
         LinearLayout hero = new LinearLayout(activity);
         hero.setGravity(android.view.Gravity.CENTER_VERTICAL);
         hero.setOrientation(LinearLayout.HORIZONTAL);
-        int pad = dp(activity, 14);
+        int pad = dp(activity, 10);
         hero.setPadding(pad, pad, pad, pad);
         GradientDrawable bg = new GradientDrawable(
             GradientDrawable.Orientation.TL_BR,
@@ -262,11 +262,11 @@ public final class TouchUi {
         hero.setBackground(bg);
         hero.setElevation(dp(activity, 5));
         LinearLayout.LayoutParams frame = new LinearLayout.LayoutParams(-1, -2);
-        frame.bottomMargin = dp(activity, 13);
+        frame.bottomMargin = dp(activity, 8);
         parent.addView(hero, frame);
 
         FrameLayout orb = new FrameLayout(activity);
-        int orbSize = dp(activity, widthDp(activity) < 400 ? 48 : 60);
+        int orbSize = dp(activity, widthDp(activity) < 400 ? 44 : 56);
         hero.addView(orb, new LinearLayout.LayoutParams(orbSize, orbSize));
         int[] images = {R.drawable.orb_core, R.drawable.orb_petals, R.drawable.orb_ring};
         for (int resource : images) {
