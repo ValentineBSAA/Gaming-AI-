@@ -10,6 +10,27 @@ android {
         versionName '0.2.0'
         testInstrumentationRunner 'androidx.test.runner.AndroidJUnitRunner'
     }
+    // Stable signing credentials are injected ONLY through GitHub Actions secrets
+    // or the owner's local environment. No private key may be committed to the repo.
+    signingConfigs {
+        companionRelease {
+            def filePath = System.getenv("GAMING_AI_RELEASE_KEYSTORE_PATH")
+            if (filePath) {
+                storeFile file(filePath)
+                storePassword System.getenv("GAMING_AI_RELEASE_STORE_PASSWORD")
+                keyAlias System.getenv("GAMING_AI_RELEASE_KEY_ALIAS")
+                keyPassword System.getenv("GAMING_AI_RELEASE_KEY_PASSWORD")
+            }
+        }
+    }
+    buildTypes {
+        release {
+            minifyEnabled false
+            if (System.getenv("GAMING_AI_RELEASE_KEYSTORE_PATH")) {
+                signingConfig signingConfigs.companionRelease
+            }
+        }
+    }
     compileOptions {
         sourceCompatibility JavaVersion.VERSION_17
         targetCompatibility JavaVersion.VERSION_17
