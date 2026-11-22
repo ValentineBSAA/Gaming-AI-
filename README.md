@@ -106,4 +106,11 @@ Read [the consolidated release-candidate / first-day plan](docs/PRE_DEVICE_RELEA
 
 ## IMPORTANT: upgrade-safe signing for the actual handheld
 
-GitHub's ephemeral runner debug keystore is **not guaranteed stable between builds**. The user should configure a private one-time signing key as four GitHub Actions secrets before their *first permanent* device installation. On a main-branch workflow, the additional `gaming-ai-rotate-v0.2.0-signed` artifact is produced only when the secrets are installed and Android's `apksigner` verifies the result. Keep the keystore private and backed up off-device. [Step-by-step Windows signing instructions](docs/UPGRADE_SAFE_SIGNING.md). Do not mistake a successful debug APK for an upgrade-safe release.
+GitHub's ephemeral runner debug keystore is **not guaranteed stable between builds**. The user should configure a private one-time signing key as four GitHub Actions secrets before their *first permanent* device installation. On a main-branch workflow, the additional `gaming-ai-rotate-v0.2.0-signed` artifact is produced only when the secrets are installed and Android's `apksigner` verifies the result. Keep the keystore private and backed up off-device. [One-click Windows signing automation](docs/WINDOWS_SIGNING_AUTOMATION.md) or [manual signing instructions](docs/UPGRADE_SAFE_SIGNING.md). Do not mistake a successful debug APK for an upgrade-safe release.
+
+
+## One-click Windows signing setup (no keystore in source)
+
+After downloading the `gaming-ai-windows-signing-setup` artifact from a successful GitHub Actions run, extract and run `START-GAMING-AI-SIGNING.cmd` on your trusted Windows PC. You must authorize GitHub, choose and securely back up a private signing password, and confirm reuse if signing secrets already exist. The script generates/reuses a private signing keystore and sends the four encrypted GitHub Actions values without exposing them in public source. It now triggers a **manual** signed workflow on `main`, which was previously restricted to push events.
+
+[Details and one-time security checklist](docs/WINDOWS_SIGNING_AUTOMATION.md). A stable signing key is required for the first permanent device install, but it is not generated in the public repository. Do not upload your private keystore into chat.
