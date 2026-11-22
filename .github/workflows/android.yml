@@ -50,7 +50,7 @@ jobs:
       # Release signing must survive across APK versions. No key in GitHub source.
       # Without the four repository secrets we upload debug-only testing builds.
       - name: Recover private stable signing key when configured
-        if: github.event_name == 'push'
+        if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
         env:
           SIGNING_B64: ${{ secrets.GAMING_AI_KEYSTORE_BASE64 }}
           STORE_PASS: ${{ secrets.GAMING_AI_RELEASE_STORE_PASSWORD }}
@@ -60,6 +60,10 @@ jobs:
         run: |
           set -euo pipefail
           if [ -z "$SIGNING_B64" ]; then
+            if [ "$GITHUB_EVENT_NAME" = "workflow_dispatch" ]; then
+              echo "::error::Signing secrets are missing. Run scripts/setup-signing.ps1 privately on Windows first."
+              exit 1
+            fi
             echo "No stable signing key configured. Only the debug artifact is available."
             exit 0
           fi
@@ -72,7 +76,7 @@ jobs:
           echo "GAMING_AI_RELEASE_KEYSTORE_PATH=$RUNNER_TEMP/gaming-ai-release.jks" >> "$GITHUB_ENV"
 
       - name: Build and verify stable signed APK when available
-        if: github.event_name == 'push'
+        if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
         env:
           GAMING_AI_RELEASE_STORE_PASSWORD: ${{ secrets.GAMING_AI_RELEASE_STORE_PASSWORD }}
           GAMING_AI_RELEASE_KEY_ALIAS: ${{ secrets.GAMING_AI_RELEASE_KEY_ALIAS }}
@@ -92,7 +96,7 @@ jobs:
           echo "Stable signing APK verified. Keep keystore and passwords backed up OFF the microSD."
 
       - name: Upload stable-signed upgradeable APK (when configured)
-        if: github.event_name == 'push'
+        if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
         uses: actions/upload-artifact@v4
         with:
           name: gaming-ai-rotate-v0.2.0-signed
