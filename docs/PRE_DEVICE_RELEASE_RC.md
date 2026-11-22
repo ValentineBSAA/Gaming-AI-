@@ -24,7 +24,8 @@
 - [ ] G0: Exact source SHA and version 0.2.0 / versionCode 11 recorded. Main-branch CI `testDebugUnitTest`, `assembleDebug`, grayscale PNG and privacy preflight all **SUCCESS**.
 - [ ] G1: 720 × 720 Android 12 emulator test PASS: dashboard, Voice Lab, Memory Library, Game Profiles and First-day Setup by actual taps; capture screenshots and UI trees, test font scaling at 130/150/200%.
 - [ ] G2: Synthetic Android KEYCODE_BUTTON_B navigation from Memory Library to dashboard and L1/R1 page calls PASS. Physical controller mapping remains unknown.
-- [ ] G3: Verify APK artifact exists and is not expired. Document filename, commit SHA and actual APK SHA-256 when available, rather than artifact-ZIP digest. Debug-signed sideload only, no store release promise.
+- [ ] G3: Verify a private stable signing keystore is configured **before a permanent install** (see [private signing guide](UPGRADE_SAFE_SIGNING.md)); do not assume a fresh CI debug keystore can upgrade prior builds.
+- [ ] G3a: Verify APK artifact exists and is not expired. Document filename, commit SHA and actual APK SHA-256 when available, rather than artifact-ZIP digest. Debug-signed sideload only, no store release promise.
 - [ ] G4: Read code/README for false claims, accidental INTERNET or broad-file permission, hardcoded paid keys, automatic screenshot saving, voice auto-enrollment. Keep disabled/incomplete features clearly identified.
 - [ ] G5: No need for another feature iteration before physical receipt unless this gate finds a blocking defect.
 
