@@ -7,6 +7,10 @@ Every fresh GitHub Actions runner can generate a different Android **debug keyst
 
 ## Automated one-time setup (recommended)
 
+**Double-click option:** Open the latest successful [Windows private signing wizard safety check](https://github.com/ValentineBSAA/Gaming-AI-/actions/workflows/signing-wizard-check.yml) run, download the **gaming-ai-windows-signing-setup** artifact, extract the ZIP to a folder on your trusted Windows PC, review `setup-signing.ps1`, and double-click **START-WINDOWS-SIGNING.cmd**. It opens PowerShell, preserves the result on screen, and guides the one-time setup. The launcher temporarily sets the execution policy only for its own reviewed script, not the system policy. No keystore/password is included in the ZIP.
+
+The wizard now verifies the key's actual SHA-256 signing-certificate fingerprint using Java keytool, refuses an unexpected fingerprint change, requires you to type `BACKED UP` **after** separately backing up both the key and password, and prompts `REUSE SAME KEY` before deliberately overwriting any existing GitHub signing secrets. It can wait for the manually triggered GitHub run and check that the **signed** artifact actually exists. This is still a user-authorized local procedure, not a remote action from chat.
+
 Gaming AI includes a private, owner-run PowerShell wizard. You do **not** have to manually paste a keystore encoded string or type four separate GitHub secret fields.
 
 On your own Windows PC:
