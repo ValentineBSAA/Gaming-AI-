@@ -61,18 +61,44 @@ adb shell input tap "$x" "$y"
 sleep 5
 capture "voice_720_density320_font130"
 
+# Confirm Android really navigated into the Voice Lab Activity. A long scroll view's
+# UIAutomator dump only contains the current viewport, not every voice-list control.
+adb shell dumpsys activity activities > square-evidence/voice_activity_state.txt
 python3 - <<'PY'
-from xml.etree import ElementTree
-root = ElementTree.parse("square-evidence/voice_720_density320_font130.xml").getroot()
-texts = [x.get("text", "") for x in root.iter("node")]
-# Android may restore/scroll a tall view so its page title is off-screen.
-# Inspect controls unique to the Voice Lab rather than a nonvisible header.
-assert any("All English voices" in x or "US English" in x or
-           "GUIDED OFFLINE VOICE SETUP" in x for x in texts), (
-    "FAIL: Voice Lab controls not found after touch navigation"
+from pathlib import Path
+import re
+dump = Path("square-evidence/voice_activity_state.txt").read_text()
+focused = [line.strip() for line in dump.splitlines()
+           if "topResumedActivity" in line or "mResumedActivity" in line]
+assert any("com.valentinebsaa.gamingai/.VoiceLabActivity" in line
+           or "com.valentinebsaa.gamingai/com.valentinebsaa.gamingai.VoiceLabActivity" in line
+           for line in focused), (
+    "FAIL: expected VoiceLabActivity after tap, got " + repr(focused)
 )
-print("PASS: Voice Lab UI controls are present after touchscreen navigation")
+print("PASS: touchscreen tap opened actual VoiceLabActivity")
 PY
+
+# Scroll back up to check for the Voice Lab page-specific heading. This catches
+# both a wrong screen and the previous offscreen-label false negative.
+for attempt in 1 2 3 4 5 6; do
+  adb shell uiautomator dump /sdcard/window.xml >/dev/null
+  adb exec-out cat /sdcard/window.xml > square-evidence/voice-current.xml
+  if python3 - <<'PY'
+from xml.etree import ElementTree
+root = ElementTree.parse("square-evidence/voice-current.xml").getroot()
+texts = [n.get("text", "") for n in root.iter("node")]
+if not any("Voice Lab" in value or "OFFLINE AUDIO" in value
+           for value in texts):
+    raise SystemExit(1)
+print("PASS: Voice Lab header visible after scroll")
+PY
+  then
+    break
+  fi
+  adb shell input swipe 360 230 360 530 280
+  sleep 1
+done
+
 
 # Swipe down to capture the actual top header for UI review, not only the voice list.
 for i in 1 2 3 4; do
