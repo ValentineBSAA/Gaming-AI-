@@ -102,3 +102,8 @@ Voice Lab now keeps diagnostics collapsed by default behind a tappable summary; 
 - All new APKs remain held until the candidate build and emulator smoke tests pass. These tests cannot verify microphone quality, PPSSPP overhead, swivel mapping or battery on the actual handheld.
 
 Read [the consolidated release-candidate / first-day plan](docs/PRE_DEVICE_RELEASE_RC.md) before installing. **No raw screenshot capture, automatic game detection, generative offline AI, continuous listening or pay-per-minute cloud speech is implemented by v0.2.0.**
+
+
+## IMPORTANT: upgrade-safe signing for the actual handheld
+
+GitHub's ephemeral runner debug keystore is **not guaranteed stable between builds**. The user should configure a private one-time signing key as four GitHub Actions secrets before their *first permanent* device installation. On a main-branch workflow, the additional `gaming-ai-rotate-v0.2.0-signed` artifact is produced only when the secrets are installed and Android's `apksigner` verifies the result. Keep the keystore private and backed up off-device. [Step-by-step Windows signing instructions](docs/UPGRADE_SAFE_SIGNING.md). Do not mistake a successful debug APK for an upgrade-safe release.
