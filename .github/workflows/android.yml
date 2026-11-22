@@ -103,3 +103,11 @@ jobs:
           path: app/build/outputs/apk/release/app-release.apk
           if-no-files-found: ignore
 
+      - name: Upload public signing certificate fingerprint (when configured)
+        if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+        uses: actions/upload-artifact@v4
+        with:
+          name: gaming-ai-rotate-v0.2.0-signing-certificate
+          path: signing-certificate.txt
+          if-no-files-found: ignore
+
