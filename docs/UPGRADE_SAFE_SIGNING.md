@@ -5,6 +5,37 @@ Every fresh GitHub Actions runner can generate a different Android **debug keyst
 
 **Decision:** from the first long-term RG Rotate installation onward, use a stable privately signed APK. Never use a public/committed keystore or assume temporary runner debug keys match. An app signed with a different cert cannot upgrade an installed APK with the same app ID without uninstalling.
 
+## Automated one-time setup (recommended)
+
+Gaming AI includes a private, owner-run PowerShell wizard. You do **not** have to manually paste a keystore encoded string or type four separate GitHub secret fields.
+
+On your own Windows PC:
+
+1. Install the Java 17 JDK and the GitHub CLI if they are not already available. From an elevated PowerShell window, if needed:
+   ```powershell
+   winget install --id EclipseAdoptium.Temurin.17.JDK -e
+   winget install --id GitHub.cli -e
+   ```
+   Open a **new normal PowerShell window** after installation. Run `gh auth login` to authorize your own GitHub account. Do not share its access token with anyone.
+2. Download or clone `ValentineBSAA/Gaming-AI-` to your computer. In that project's root folder, run:
+   ```powershell
+   powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\setup-signing.ps1
+   ```
+   The temporary ExecutionPolicy flag applies only to this command. **Inspect the downloaded script first.** Never run unexpected scripts from untrusted sources.
+3. Type `SIGN` when prompted and choose a strong, unique signing password through Java's interactive `keytool` prompt. When the script asks, enter the same password once more. The script does the rest:
+   - Creates `%LOCALAPPDATA%\GamingAI\Signing\gaming-ai-release.jks` **outside the source repository**, or reuses that exact local file if present.
+   - Checks the GitHub CLI login and that the repository is accessible.
+   - Uploads the keystore and passwords to **GitHub Actions encrypted secrets**, using the CLI's standard input, never a command-line argument.
+   - Confirms the four secret *names* exist and triggers the `android.yml` workflow on `main` to build and verify a stable-signed APK.
+4. Preserve a separate **offline** backup of the `.jks` file and its password in your trusted password manager. The script cannot recover a lost password. Do not put this backup in the public repo, a GitHub issue, ChatGPT, or only on the RG Rotate SD card.
+5. Wait for GitHub Actions SUCCESS and check that it uploaded the `gaming-ai-rotate-v0.2.0-signed` artifact. This is the APK to install first for long-term use. A debug-signed APK is **not** an upgrade-compatible substitute.
+
+If the wizard detects *any* existing signing secret, it stops rather than silently replacing your existing signing identity. Only use `-ResumeWithExistingSecrets` for a deliberate retry **with the exact same keystore and password**. Do not rotate the key on a device that already has Gaming AI installed. Run the script on a trusted machine that you control.
+
+> The wizard cannot secretly act on your Windows PC. You must run it locally and explicitly authorize `gh`. It cannot provide or recover a private signing key from this chat. The first-run dialog and key backup are intentionally manual. All subsequent signed builds are automatic once the four secrets exist.
+
+---
+
 ## One-time owner-controlled signing setup (Windows 11)
 
 Do this on your own trusted Windows PC, not in this chat, and **never paste the key or passwords into an AI conversation, issue or repository**.
@@ -25,7 +56,7 @@ Do this on your own trusted Windows PC, not in this chat, and **never paste the 
    - `GAMING_AI_RELEASE_KEY_ALIAS`: `gamingai` (or the alias you generated).
    - `GAMING_AI_RELEASE_KEY_PASSWORD`: Your private key password (often the same as keystore password for PKCS12).
 4. Keep a backup of the **original `.jks` and passwords** in a secure offline location outside the RG Rotate and outside GitHub. Losing them means you cannot reliably sign compatible future upgrades.
-5. Start the `Android debug APK + unit tests` workflow on `main` again. It will upload a second artifact `gaming-ai-rotate-v0.2.0-signed` **only when all signing secrets are configured**. The script invokes `assembleRelease`, validates with Android `apksigner`, and reports the final APK SHA-256. If the signing secrets are missing, only a debug-testing APK is produced.
+5. Start the `Android debug APK + unit tests` workflow on `main` again (either a `push` to main or a manual `workflow_dispatch` run). It will upload a second artifact `gaming-ai-rotate-v0.2.0-signed` **only when all signing secrets are configured**. The script invokes `assembleRelease`, validates with Android `apksigner`, and reports the final APK SHA-256. If the signing secrets are missing, only a debug-testing APK is produced.
 
 The signing key is never checked into GitHub, printed into build logs or bundled with the APK. Anyone with read access to GitHub artifacts may download the signed APK, but cannot recover the private signing key from the APK. Credentials stay in GitHub Actions secrets.
 
