@@ -120,3 +120,16 @@ jobs:
             exit 1
           }
           Write-Host "PASS: Windows PowerShell 5.1 script parses with no errors"
+      - name: Prepare click-to-run Windows signing package
+        shell: powershell
+        run: |
+          New-Item -ItemType Directory -Path signing-package -Force | Out-Null
+          Copy-Item scripts/windows/Setup-GamingAISigning.ps1 signing-package/
+          Copy-Item scripts/windows/START-GAMING-AI-SIGNING.cmd signing-package/
+          Copy-Item docs/WINDOWS_SIGNING_AUTOMATION.md signing-package/README-WINDOWS-SIGNING.md
+      - name: Upload validated Windows signing utility
+        uses: actions/upload-artifact@v4
+        with:
+          name: gaming-ai-windows-signing-setup
+          path: signing-package/
+          if-no-files-found: error
