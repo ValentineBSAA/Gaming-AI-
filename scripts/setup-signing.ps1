@@ -274,10 +274,7 @@ if (-not $SkipWorkflowTrigger) {
             $artifactsJson = (& $gh api "repos/$repository/actions/runs/$runId/artifacts" | Out-String)
             if ($LASTEXITCODE -ne 0) { throw "Build passed but artifact query failed. Check $url" }
             $signed = @((ConvertFrom-Json -InputObject $artifactsJson).artifacts |
-                Where-Object { $_.name -match '^gaming-ai-rotate-v.*-signed
-}
-Write-Host 'Done. NEVER install an ephemeral debug build as the long-term signing baseline.'
- -and -not $_.expired })
+                Where-Object { $_.name -match '^gaming-ai-rotate-v.*-signed$' -and -not $_.expired })
             if ($signed.Count -eq 0) {
                 throw "No stable-signed artifact found. Do not install the debug APK. Check $url"
             }
