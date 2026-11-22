@@ -55,6 +55,7 @@ public final class VoiceLabActivity extends HandheldActivity {
     private final int muted = Color.rgb(185, 176, 194);
     private TextToSpeech speech;
     private SpeechRecognizer recognizer;
+    private boolean firstCatalogLoad = true;
     private boolean speechReady;
     private boolean listening;
     private ListView voices;
@@ -368,6 +369,17 @@ public final class VoiceLabActivity extends HandheldActivity {
             ? "No English voice advertised for offline use. Follow steps 1–3 above, or use text."
             : offlineVoices.size() + " offline English voice options found. "
                 + "Preview to verify any voice pack is installed.");
+        // A nested ListView can ask the parent ScrollView to focus its selected row.
+        // On the first launch, show the setup/header instead of a scrolled-off title.
+        if (firstCatalogLoad && labScroll != null) {
+            firstCatalogLoad = false;
+            labScroll.postDelayed(() -> {
+                if (!isFinishing() && !isDestroyed()) {
+                    labScroll.requestFocus();
+                    labScroll.scrollTo(0, 0);
+                }
+            }, 150);
+        }
     }
 
 
