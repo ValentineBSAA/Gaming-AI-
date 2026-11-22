@@ -27,6 +27,20 @@ public final class CombinedBackupRulesTest {
             "A boss strategy", true));
         assertNotEquals(first, CombinedBackupRules.sha256(edited, games));
     }
+    @Test public void contentVerificationCatchesSameCountChanges() {
+        List<MemoryRecord> original = samples();
+        String checksum = CombinedBackupRules.sha256(original, new ArrayList<>());
+        List<MemoryRecord> altered = new ArrayList<>(original);
+        altered.set(0, new MemoryRecord("id1", 100, "The 3rd Birthday",
+            "Mission noet", true));
+        assertEquals(original.size(), altered.size());
+        assertNotEquals(checksum, CombinedBackupRules.sha256(altered, new ArrayList<>()));
+        List<String> games = Arrays.asList("Test Game");
+        String profileChecksum = CombinedBackupRules.sha256(new ArrayList<>(), games);
+        assertNotEquals(profileChecksum, CombinedBackupRules.sha256(
+            new ArrayList<>(), Arrays.asList("Other Game")));
+    }
+
     @Test public void emptyPayloadStillHasValidChecksum() {
         String sum = CombinedBackupRules.sha256(new ArrayList<>(), new ArrayList<>());
         assertTrue(sum.matches("[0-9a-f]{64}"));

@@ -6,9 +6,30 @@ android {
         applicationId 'com.valentinebsaa.gamingai'
         minSdk 26
         targetSdk 34
-        versionCode 10
-        versionName '0.1.9'
+        versionCode 11
+        versionName '0.2.0'
         testInstrumentationRunner 'androidx.test.runner.AndroidJUnitRunner'
+    }
+    // Stable signing credentials are injected ONLY through GitHub Actions secrets
+    // or the owner's local environment. No private key may be committed to the repo.
+    signingConfigs {
+        companionRelease {
+            def filePath = System.getenv("GAMING_AI_RELEASE_KEYSTORE_PATH")
+            if (filePath) {
+                storeFile file(filePath)
+                storePassword System.getenv("GAMING_AI_RELEASE_STORE_PASSWORD")
+                keyAlias System.getenv("GAMING_AI_RELEASE_KEY_ALIAS")
+                keyPassword System.getenv("GAMING_AI_RELEASE_KEY_PASSWORD")
+            }
+        }
+    }
+    buildTypes {
+        release {
+            minifyEnabled false
+            if (System.getenv("GAMING_AI_RELEASE_KEYSTORE_PATH")) {
+                signingConfig signingConfigs.companionRelease
+            }
+        }
     }
     compileOptions {
         sourceCompatibility JavaVersion.VERSION_17

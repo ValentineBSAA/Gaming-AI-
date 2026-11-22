@@ -69,7 +69,11 @@ public final class GameProfileStore {
             if (array.length() > GameProfilePolicy.MAX_CUSTOM) return null;
             ArrayList<String> titles = new ArrayList<>();
             for (int i = 0; i < array.length(); i++) titles.add(array.getString(i));
-            return new Snapshot(revision, GameProfilePolicy.validateCustom(titles));
+            List<String> validated = GameProfilePolicy.validateCustom(titles);
+            // Compatibility: previously created snapshots did not have a checksum.
+            String checksum = CombinedBackupRules.sha256(new ArrayList<>(), validated);
+            if (root.has("sha256") && !checksum.equals(root.getString("sha256"))) return null;
+            return new Snapshot(revision, validated);
         } catch (Exception invalid) {
             return null; // Recover from the other valid snapshot; do not erase either.
         }
@@ -104,6 +108,7 @@ public final class GameProfileStore {
         try {
             JSONObject root = new JSONObject();
             root.put("revision", next);
+            root.put("sha256", CombinedBackupRules.sha256(new ArrayList<>(), validated));
             JSONArray names = new JSONArray();
             for (String title : validated) names.put(title);
             root.put("customGames", names);

@@ -21,6 +21,28 @@ adb shell am start -W -n com.valentinebsaa.gamingai/.MainActivity
 sleep 3
 capture "main_720_density320_font130"
 
+# At the default 720-square density/font setting all four premium quick actions
+# must fit above the bottom navigation bar, not merely exist offscreen.
+python3 - <<'PY'
+from xml.etree import ElementTree
+import re
+root = ElementTree.parse("square-evidence/main_720_density320_font130.xml").getroot()
+expected = {"Voice Lab", "Memories", "Game Profiles", "First-day Setup"}
+visible = set()
+for node in root.iter("node"):
+    title = node.get("text", "")
+    if title not in expected:
+        continue
+    match = re.fullmatch(r"\[(\d+),(\d+)\]\[(\d+),(\d+)\]",
+        node.get("bounds", ""))
+    if match:
+        x1, y1, x2, y2 = map(int, match.groups())
+        if x2 > x1 and y2 > y1 and y2 <= 594:
+            visible.add(title)
+assert expected == visible, "FAIL: premium quick actions clipped: " + repr(expected - visible)
+print("PASS: four premium dashboard actions visible without scrolling")
+PY
+
 # Scroll the 720x720 dashboard until the action is actually inside the viewport.
 # UIAutomator only exposes currently laid-out portions of a long ScrollView.
 for attempt in 1 2 3 4 5 6 7 8; do
@@ -61,18 +83,44 @@ adb shell input tap "$x" "$y"
 sleep 5
 capture "voice_720_density320_font130"
 
+# Confirm Android really navigated into the Voice Lab Activity. A long scroll view's
+# UIAutomator dump only contains the current viewport, not every voice-list control.
+adb shell dumpsys activity activities > square-evidence/voice_activity_state.txt
 python3 - <<'PY'
-from xml.etree import ElementTree
-root = ElementTree.parse("square-evidence/voice_720_density320_font130.xml").getroot()
-texts = [x.get("text", "") for x in root.iter("node")]
-# Android may restore/scroll a tall view so its page title is off-screen.
-# Inspect controls unique to the Voice Lab rather than a nonvisible header.
-assert any("All English voices" in x or "US English" in x or
-           "GUIDED OFFLINE VOICE SETUP" in x for x in texts), (
-    "FAIL: Voice Lab controls not found after touch navigation"
+from pathlib import Path
+import re
+dump = Path("square-evidence/voice_activity_state.txt").read_text()
+focused = [line.strip() for line in dump.splitlines()
+           if "topResumedActivity" in line or "mResumedActivity" in line]
+assert any("com.valentinebsaa.gamingai/.VoiceLabActivity" in line
+           or "com.valentinebsaa.gamingai/com.valentinebsaa.gamingai.VoiceLabActivity" in line
+           for line in focused), (
+    "FAIL: expected VoiceLabActivity after tap, got " + repr(focused)
 )
-print("PASS: Voice Lab UI controls are present after touchscreen navigation")
+print("PASS: touchscreen tap opened actual VoiceLabActivity")
 PY
+
+# Scroll back up to check for the Voice Lab page-specific heading. This catches
+# both a wrong screen and the previous offscreen-label false negative.
+for attempt in 1 2 3 4 5 6; do
+  adb shell uiautomator dump /sdcard/window.xml >/dev/null
+  adb exec-out cat /sdcard/window.xml > square-evidence/voice-current.xml
+  if python3 - <<'PY'
+from xml.etree import ElementTree
+root = ElementTree.parse("square-evidence/voice-current.xml").getroot()
+texts = [n.get("text", "") for n in root.iter("node")]
+if not any("Voice Lab" in value or "OFFLINE AUDIO" in value
+           for value in texts):
+    raise SystemExit(1)
+print("PASS: Voice Lab header visible after scroll")
+PY
+  then
+    break
+  fi
+  adb shell input swipe 360 230 360 530 280
+  sleep 1
+done
+
 
 # Swipe down to capture the actual top header for UI review, not only the voice list.
 for i in 1 2 3 4; do
@@ -127,6 +175,18 @@ PY
 }
 
 open_quick_tile "Memories" "memory_library_720_density320_font130"
+adb shell input keyevent 97
+sleep 2
+capture "back_button_from_memories_720_density320_font130"
+python3 - <<'PY'
+from xml.etree import ElementTree
+root = ElementTree.parse(
+    "square-evidence/back_button_from_memories_720_density320_font130.xml").getroot()
+texts = [x.get("text", "") for x in root.iter("node")]
+assert any("Gaming AI" in t for t in texts), "FAIL: controller B didn't return to dashboard"
+print("PASS: emulator KEYCODE_BUTTON_B returns to dashboard")
+PY
+
 open_quick_tile "Game Profiles" "game_profiles_720_density320_font130"
 open_quick_tile "First-day Setup" "first_day_setup_720_density320_font130"
 
@@ -158,6 +218,28 @@ root = ElementTree.parse("square-evidence/main_720_density400_font150.xml").getr
 texts = [x.get("text","") for x in root.iter("node")]
 assert any("Gaming AI" in x for x in texts), "FAIL: main dashboard missing after scaling"
 print("PASS: scaled square dashboard exposes title")
+PY
+
+# Larger accessibility font sanity pass. Layout must stay scrollable without crash.
+adb shell am force-stop com.valentinebsaa.gamingai
+adb shell settings put system font_scale 2.0
+adb shell am start -W -n com.valentinebsaa.gamingai/.MainActivity
+sleep 3
+capture "main_720_density400_font200"
+adb shell input keyevent 103
+sleep 1
+capture "main_after_R1_page_720_density400_font200"
+adb shell input keyevent 102
+sleep 1
+python3 - <<'PY'
+from xml.etree import ElementTree
+root = ElementTree.parse(
+    "square-evidence/main_720_density400_font200.xml").getroot()
+texts = [x.get("text", "") for x in root.iter("node")]
+assert any("Gaming AI" in t for t in texts), (
+    "FAIL: main dashboard unavailable at 200% font size"
+)
+print("PASS: 720 square 200% font launch + shoulder paging input")
 PY
 
 adb shell wm size > square-evidence/virtual_screen.txt

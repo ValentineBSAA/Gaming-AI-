@@ -197,3 +197,19 @@ See [full square touchscreen QA matrix](SQUARE_TOUCHSCREEN_TESTS.md). Code and C
 - [ ] G1H.4 Android unit tests, emulator touch screenshots, original memory, backup, orb, and privacy regression pass on merged main; retail RG Rotate hardware **NOT RUN**.
 - [ ] G1H.5 Review actual screenshots for spacing, glow and icon balance against earlier labeled simulated concepts; do not claim pixel-perfect equivalence without device testing.
 See [GitHub issue #16](https://github.com/ValentineBSAA/Gaming-AI-/issues/16).
+
+
+## Gate 1I — Consolidated v0.2.0 pre-device candidate [ ]
+
+**Reason:** avoid repeated incomplete APK downloads. Freeze new feature scope after integrated safety, controller QoL, onboarding and emulator QA. [One-install release gate](PRE_DEVICE_RELEASE_RC.md).
+
+- [ ] G1I.1 New writes on memory/profile two-slot microSD snapshots get SHA-256 integrity digests; old un-hashed snapshots load; corrupt or partial data fall back to alternate valid copy when possible.
+- [ ] G1I.2 Archive before memory compaction, preview deletions, confirm, never silently remove pinned records. If archive fails, abort compaction.
+- [ ] G1I.3 Persist explicit user-reported first-day test selections and provide reset; diagnostic app version reflects actual package.
+- [ ] G1I.4 Controller B exits app screens, L1/R1 page the scroll view while Gaming AI is focused only; emulator synthetic tests and physical mappings separately verified.
+- [ ] G1I.5 Orb reset and resize bounds guard preserve access after swivel/display changes without enabling an unwanted overlay.
+- [ ] G1I.6 CI release preflight blocks INTERNET/broad file access, missing privacy safety policies or version mismatch; Android unit tests, APK, PNG assets and 720 square emulator at 130/150/200% font pass.
+- [ ] G1I.7 Verified main-branch candidate artifact SHA + exact Android debug APK for one organized handoff. Do not call screenshot/AI/voice capabilities complete that do not exist.
+- [ ] G1I.8 Physical 720×720, swivel, microSD, audio quality, controller mapping and PPSSPP FPS/battery remain **NOT TESTED** until the RG Rotate arrives.
+
+**After device delivery:** use first-day diagnostic to batch defects rather than shipping one-fix-at-a-time iterations. The next AI/generative voice/ephemeral screenshot projects remain gated separately.

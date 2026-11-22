@@ -26,9 +26,10 @@ import java.util.Locale;
  * Guided first-day verification, with honest PASS / NEEDS ACTION / NOT TESTED
  * indicators. Does not silently request mic, grant overlays or record gameplay.
  */
-public final class SetupGuideActivity extends Activity {
+public final class SetupGuideActivity extends HandheldActivity {
     private static final String URI_PREFS = "permission_locator_only";
     private static final String KEY_URI = "sd_tree_uri";
+    private static final String CHECKS_PREFS = "first_day_device_manual_checks";
     private static final int FOREGROUND = 0xfff6f2ff;
     private static final int MUTED = 0xffb3bed1;
     private TextView headline;
@@ -55,8 +56,8 @@ public final class SetupGuideActivity extends Activity {
         LinearLayout device = TouchUi.card(this, root);
         heading(device, "1 • DISPLAY & TOUCH");
         screenDetails = addText(device, "", 13, MUTED);
-        touchPassed = check(device, "I tested scrolling and tapping at 720 × 720");
-        swivelPassed = check(device, "I tested opening and closing the swivel screen");
+        touchPassed = check(device, "I tested scrolling and tapping at 720 × 720", "touch");
+        swivelPassed = check(device, "I tested opening and closing the swivel screen", "swivel");
 
         LinearLayout sd = TouchUi.card(this, root);
         heading(sd, "2 • REMOVABLE MICROSD");
@@ -84,12 +85,12 @@ public final class SetupGuideActivity extends Activity {
                 startActivity(intent);
             });
         audioPassed = check(voices,
-            "I previewed a voice with Airplane Mode enabled");
+            "I previewed a voice with Airplane Mode enabled", "audio");
 
         LinearLayout games = TouchUi.card(this, root);
         heading(games, "5 • PPSSPP & GAMEPLAY");
         ppssppPassed = check(games,
-            "I tested PSP gameplay with orb hidden and visible");
+            "I tested PSP gameplay with orb hidden and visible", "ppsspp");
         addText(games, "Later: The 3rd Birthday, Midnight Club 3, "
             + "and Midnight Club: LA Remix. Observe battery, heat, frame rate, "
             + "Bluetooth sound, and whether the overlay steals taps. "
@@ -102,6 +103,22 @@ public final class SetupGuideActivity extends Activity {
             12, MUTED);
         TouchUi.button(this, report, "Copy diagnostic report", v -> copyReport());
         TouchUi.button(this, report, "Refresh system checks", v -> refreshStatus());
+        TouchUi.button(this, report, "Reset my manual checkmarks", v -> {
+            new AlertDialog.Builder(this)
+                .setTitle("Reset manual device test results?")
+                .setMessage("This clears only your four manual checklist selections. "
+                    + "Saved game memories and microSD files will not be touched.")
+                .setNegativeButton("Cancel", null)
+                .setPositiveButton("Reset tests", (dialog, action) -> {
+                    getSharedPreferences(CHECKS_PREFS, MODE_PRIVATE).edit().clear().apply();
+                    touchPassed.setChecked(false);
+                    swivelPassed.setChecked(false);
+                    audioPassed.setChecked(false);
+                    ppssppPassed.setChecked(false);
+                    sdTestPassed = false;
+                    refreshStatus();
+                }).show();
+        });
         TouchUi.button(this, root, "Return to Dashboard", v -> finish());
         refreshStatus();
         TouchUi.reveal(this, root);
@@ -124,13 +141,20 @@ public final class SetupGuideActivity extends Activity {
         title.setTextColor(TouchUi.LAVENDER);
     }
 
-    private CheckBox check(LinearLayout parent, String text) {
+    private CheckBox check(LinearLayout parent, String text, String key) {
         CheckBox box = new CheckBox(this);
         box.setText(text);
         box.setTextColor(FOREGROUND);
         box.setTextSize(13);
         box.setMinHeight(TouchUi.dp(this, 52));
         box.setSingleLine(false);
+        box.setChecked(getSharedPreferences(CHECKS_PREFS, MODE_PRIVATE)
+            .getBoolean(key, false));
+        box.setOnCheckedChangeListener((control, checked) -> {
+            getSharedPreferences(CHECKS_PREFS, MODE_PRIVATE).edit()
+                .putBoolean(key, checked).apply();
+            if (headline != null) updateSummary();
+        });
         parent.addView(box, new LinearLayout.LayoutParams(-1, -2));
         return box;
     }
@@ -185,8 +209,28 @@ public final class SetupGuideActivity extends Activity {
         }
         voiceDetails.setText("Installed TTS voices must be auditioned in Voice Lab. "
             + asrStatus + " No paid API is connected.");
-        headline.setText("System checks refreshed. User-reported checkboxes "
-            + "are not automated test results.");
+        updateSummary();
+    }
+
+    private void updateSummary() {
+        if (headline == null || touchPassed == null || swivelPassed == null
+                || ppssppPassed == null || audioPassed == null) return;
+        int count = (touchPassed.isChecked() ? 1 : 0)
+            + (swivelPassed.isChecked() ? 1 : 0)
+            + (audioPassed.isChecked() ? 1 : 0)
+            + (ppssppPassed.isChecked() ? 1 : 0);
+        headline.setText(count + " of 4 manual device checks reported complete. "
+            + "These are your own checkmarks, not automated proof. "
+            + "System tests are shown separately below.");
+    }
+
+    private String appVersion() {
+        try {
+            return getPackageManager().getPackageInfo(getPackageName(), 0)
+                .versionName;
+        } catch (Exception unavailable) {
+            return "unknown";
+        }
     }
 
     private void testMicroSd() {
@@ -236,7 +280,7 @@ public final class SetupGuideActivity extends Activity {
         } catch (Exception missing) {
             sdStatus = "NEEDS ACTION (no private folder information included)";
         }
-        return "Gaming AI v0.1.8 | First-day device QA\n"
+        return "Gaming AI v" + appVersion() + " | First-day device QA\n"
             + "Model: " + Build.MANUFACTURER + " " + Build.MODEL + "\n"
             + "Android: " + Build.VERSION.RELEASE + "\n"
             + "Display: " + display.widthPixels + "x" + display.heightPixels

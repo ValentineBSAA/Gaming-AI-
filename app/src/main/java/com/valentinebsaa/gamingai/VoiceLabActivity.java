@@ -45,7 +45,7 @@ import java.util.Locale;
  * Requires a local TTS voice. Mic uses ONLY createOnDeviceSpeechRecognizer,
  * when the device exposes one; no network fallback or INTERNET permission.
  */
-public final class VoiceLabActivity extends Activity {
+public final class VoiceLabActivity extends HandheldActivity {
     public static final String EXTRA_GAME = "game";
     private static final String PREFS = "voice_lab_settings";
     private static final int REQUEST_MIC = 201;
@@ -55,6 +55,7 @@ public final class VoiceLabActivity extends Activity {
     private final int muted = Color.rgb(185, 176, 194);
     private TextToSpeech speech;
     private SpeechRecognizer recognizer;
+    private boolean firstCatalogLoad = true;
     private boolean speechReady;
     private boolean listening;
     private ListView voices;
@@ -368,6 +369,17 @@ public final class VoiceLabActivity extends Activity {
             ? "No English voice advertised for offline use. Follow steps 1–3 above, or use text."
             : offlineVoices.size() + " offline English voice options found. "
                 + "Preview to verify any voice pack is installed.");
+        // A nested ListView can ask the parent ScrollView to focus its selected row.
+        // On the first launch, show the setup/header instead of a scrolled-off title.
+        if (firstCatalogLoad && labScroll != null) {
+            firstCatalogLoad = false;
+            labScroll.postDelayed(() -> {
+                if (!isFinishing() && !isDestroyed()) {
+                    labScroll.requestFocus();
+                    labScroll.scrollTo(0, 0);
+                }
+            }, 150);
+        }
     }
 
 

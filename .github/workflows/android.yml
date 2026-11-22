@@ -34,6 +34,8 @@ jobs:
         uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: '8.7'
+      - name: Preflight release privacy and packaging policies
+        run: python3 scripts/release_preflight.py
       - name: Validate grayscale PNG layers and alpha
         run: python3 scripts/check_orb_assets.py
       - name: Run unit tests and build
@@ -42,6 +44,58 @@ jobs:
         if: success()
         uses: actions/upload-artifact@v4
         with:
-          name: gaming-ai-rotate-v0.1.9-debug
+          name: gaming-ai-rotate-v0.2.0-rc-debug
           path: app/build/outputs/apk/debug/app-debug.apk
           if-no-files-found: error
+      # Release signing must survive across APK versions. No key in GitHub source.
+      # Without the four repository secrets we upload debug-only testing builds.
+      - name: Recover private stable signing key when configured
+        if: github.event_name == 'push'
+        env:
+          SIGNING_B64: ${{ secrets.GAMING_AI_KEYSTORE_BASE64 }}
+          STORE_PASS: ${{ secrets.GAMING_AI_RELEASE_STORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.GAMING_AI_RELEASE_KEY_ALIAS }}
+          KEY_PASS: ${{ secrets.GAMING_AI_RELEASE_KEY_PASSWORD }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ -z "$SIGNING_B64" ]; then
+            echo "No stable signing key configured. Only the debug artifact is available."
+            exit 0
+          fi
+          if [ -z "$STORE_PASS" ] || [ -z "$KEY_ALIAS" ] || [ -z "$KEY_PASS" ]; then
+            echo "::error::Incomplete stable signing configuration. Set all four secrets."
+            exit 1
+          fi
+          printf '%s' "$SIGNING_B64" | base64 --decode > "$RUNNER_TEMP/gaming-ai-release.jks"
+          chmod 600 "$RUNNER_TEMP/gaming-ai-release.jks"
+          echo "GAMING_AI_RELEASE_KEYSTORE_PATH=$RUNNER_TEMP/gaming-ai-release.jks" >> "$GITHUB_ENV"
+
+      - name: Build and verify stable signed APK when available
+        if: github.event_name == 'push'
+        env:
+          GAMING_AI_RELEASE_STORE_PASSWORD: ${{ secrets.GAMING_AI_RELEASE_STORE_PASSWORD }}
+          GAMING_AI_RELEASE_KEY_ALIAS: ${{ secrets.GAMING_AI_RELEASE_KEY_ALIAS }}
+          GAMING_AI_RELEASE_KEY_PASSWORD: ${{ secrets.GAMING_AI_RELEASE_KEY_PASSWORD }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ -z "${GAMING_AI_RELEASE_KEYSTORE_PATH:-}" ]; then
+            echo "Stable signed release skipped until private signing key is configured."
+            exit 0
+          fi
+          gradle --no-daemon :app:assembleRelease
+          "$ANDROID_HOME/build-tools/34.0.0/apksigner" verify --verbose --print-certs \
+            app/build/outputs/apk/release/app-release.apk > signing-certificate.txt
+          grep 'Verified using v2 scheme' signing-certificate.txt || true
+          sha256sum app/build/outputs/apk/release/app-release.apk
+          echo "Stable signing APK verified. Keep keystore and passwords backed up OFF the microSD."
+
+      - name: Upload stable-signed upgradeable APK (when configured)
+        if: github.event_name == 'push'
+        uses: actions/upload-artifact@v4
+        with:
+          name: gaming-ai-rotate-v0.2.0-signed
+          path: app/build/outputs/apk/release/app-release.apk
+          if-no-files-found: ignore
+

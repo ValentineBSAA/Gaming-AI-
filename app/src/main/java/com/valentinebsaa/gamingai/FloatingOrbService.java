@@ -7,6 +7,7 @@ import android.app.NotificationManager;
 import android.app.PendingIntent;
 import android.app.Service;
 import android.content.Intent;
+import android.content.res.Configuration;
 import android.content.res.ColorStateList;
 import android.graphics.Color;
 import android.graphics.PorterDuff;
@@ -34,6 +35,7 @@ public final class FloatingOrbService extends Service {
     public static final String ACTION_UPDATE = "com.valentinebsaa.gamingai.UPDATE";
     public static final String ACTION_STOP = "com.valentinebsaa.gamingai.STOP";
     public static final String ACTION_THEME = "com.valentinebsaa.gamingai.THEME";
+    public static final String ACTION_RESET_POSITION = "com.valentinebsaa.gamingai.RESET_POSITION";
     public static final String EXTRA_STATUS = "orb_status";
     private static final String CHANNEL_ID = "gamingai_orb";
     private static final int NOTIFICATION_ID = 42;
@@ -54,6 +56,29 @@ public final class FloatingOrbService extends Service {
         return Math.round(value * getResources().getDisplayMetrics().density);
     }
 
+    /** Keep orb reachable if firmware changes the display bounds or orientation. */
+    @Override public void onConfigurationChanged(Configuration updated) {
+        super.onConfigurationChanged(updated);
+        if (panel == null || params == null || windows == null) return;
+        DisplayMetrics dims = new DisplayMetrics();
+        windows.getDefaultDisplay().getMetrics(dims);
+        int clampedX = Math.max(0, Math.min(Math.max(0,
+            dims.widthPixels - dp(94)), params.x));
+        int clampedY = Math.max(0, Math.min(Math.max(0,
+            dims.heightPixels - dp(103)), params.y));
+        if (params.x != clampedX || params.y != clampedY) {
+            params.x = clampedX;
+            params.y = clampedY;
+            try {
+                windows.updateViewLayout(panel, params);
+                getSharedPreferences("orb_position", MODE_PRIVATE).edit()
+                    .putInt("x", params.x).putInt("y", params.y).apply();
+            } catch (IllegalArgumentException windowGone) {
+                // Surface may have been dismissed during an OS configuration change.
+            }
+        }
+    }
+
     @Override public IBinder onBind(Intent intent) { return null; }
 
     @Override public int onStartCommand(Intent intent, int flags, int startId) {
@@ -69,6 +94,16 @@ public final class FloatingOrbService extends Service {
         }
         ensureForegroundNotification();
         if (panel == null) createOrb();
+        if (intent != null && ACTION_RESET_POSITION.equals(intent.getAction())
+                && panel != null && params != null && windows != null) {
+            DisplayMetrics screen = new DisplayMetrics();
+            windows.getDefaultDisplay().getMetrics(screen);
+            params.x = Math.max(0, screen.widthPixels - dp(108));
+            params.y = Math.min(Math.max(0, screen.heightPixels - dp(103)), dp(100));
+            windows.updateViewLayout(panel, params);
+            getSharedPreferences("orb_position", MODE_PRIVATE).edit()
+                .putInt("x", params.x).putInt("y", params.y).apply();
+        }
         if (intent != null && intent.hasExtra(EXTRA_STATUS)) {
             currentState = OrbStatus.normalize(intent.getStringExtra(EXTRA_STATUS));
         }
@@ -175,9 +210,9 @@ public final class FloatingOrbService extends Service {
                     if (dragged) {
                         DisplayMetrics dims = new DisplayMetrics();
                         windows.getDefaultDisplay().getMetrics(dims);
-                        params.x = Math.max(0, Math.min(dims.widthPixels - dp(94),
+                        params.x = Math.max(0, Math.min(Math.max(0, dims.widthPixels - dp(94)),
                             originX + Math.round(deltaX)));
-                        params.y = Math.max(0, Math.min(dims.heightPixels - dp(103),
+                        params.y = Math.max(0, Math.min(Math.max(0, dims.heightPixels - dp(103)),
                             originY + Math.round(deltaY)));
                         windows.updateViewLayout(panel, params);
                     }
