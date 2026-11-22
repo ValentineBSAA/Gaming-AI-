@@ -4,12 +4,16 @@ on:
     branches: [main]
     paths:
       - 'scripts/setup-signing.ps1'
+      - 'scripts/START-WINDOWS-SIGNING.cmd'
+      - 'docs/UPGRADE_SAFE_SIGNING.md'
       - '.github/workflows/signing-wizard-check.yml'
       - '.github/workflows/android.yml'
   push:
     branches: [main]
     paths:
       - 'scripts/setup-signing.ps1'
+      - 'scripts/START-WINDOWS-SIGNING.cmd'
+      - 'docs/UPGRADE_SAFE_SIGNING.md'
       - '.github/workflows/signing-wizard-check.yml'
   workflow_dispatch:
 
@@ -59,3 +63,16 @@ jobs:
           }
           Write-Host 'PASS: Signing wizard parses; four secrets and safe standard-input upload present.'
           Write-Host 'This job does NOT generate a keystore, upload secrets or trigger a release.'
+      - name: Package click-to-run Windows signing files
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Path signing-package -Force | Out-Null
+          Copy-Item scripts/setup-signing.ps1 signing-package/
+          Copy-Item scripts/START-WINDOWS-SIGNING.cmd signing-package/
+          Copy-Item docs/UPGRADE_SAFE_SIGNING.md signing-package/README-SIGNING.md
+      - name: Upload validated Windows signing setup
+        uses: actions/upload-artifact@v4
+        with:
+          name: gaming-ai-windows-signing-setup
+          path: signing-package/
+          if-no-files-found: error
