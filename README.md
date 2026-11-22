@@ -107,3 +107,15 @@ Read [the consolidated release-candidate / first-day plan](docs/PRE_DEVICE_RELEA
 ## IMPORTANT: upgrade-safe signing for the actual handheld
 
 GitHub's ephemeral runner debug keystore is **not guaranteed stable between builds**. The user should configure a private one-time signing key as four GitHub Actions secrets before their *first permanent* device installation. On a main-branch workflow, the additional `gaming-ai-rotate-v0.2.0-signed` artifact is produced only when the secrets are installed and Android's `apksigner` verifies the result. Keep the keystore private and backed up off-device. [Step-by-step Windows signing instructions](docs/UPGRADE_SAFE_SIGNING.md). Do not mistake a successful debug APK for an upgrade-safe release.
+
+
+## One-time Windows signing automation
+
+For your **first permanent RG Rotate installation**, use the **stable signed APK**, not a randomly debug-signed CI APK. To automate setup without exposing your private key:
+
+1. On your trusted Windows 11 PC, install GitHub CLI and JDK 17 (if missing), then sign into your own GitHub account with `gh auth login`.
+2. In this repository's root directory run `powershell -NoProfile -ExecutionPolicy Bypass -File .\\scripts\\setup-signing.ps1`.
+3. Confirm locally, choose a strong JDK keystore password, then enter it once more when prompted. The script creates/reuses a private keystore under `%LOCALAPPDATA%\\GamingAI\\Signing`, registers all four encrypted GitHub secrets through **stdin**, and starts a fresh `main` workflow.
+4. **Back up the .jks and password offline**. All subsequent `main` APK release builds automatically reuse the same signing identity. The first workflow must show a successful signed artifact and a public certificate-fingerprint artifact.
+
+This automation still requires **your local approval and GitHub authentication**. The assistant cannot fetch or create your private key in chat, and the CI does not silently invent permanent signing credentials. Read [the signing guide](docs/UPGRADE_SAFE_SIGNING.md) before running the script.

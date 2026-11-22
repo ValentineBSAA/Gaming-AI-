@@ -1,0 +1,61 @@
+name: Windows private signing wizard safety check
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'scripts/setup-signing.ps1'
+      - '.github/workflows/signing-wizard-check.yml'
+      - '.github/workflows/android.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'scripts/setup-signing.ps1'
+      - '.github/workflows/signing-wizard-check.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  parse-ps:
+    runs-on: windows-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check Windows PowerShell 5.1 syntax without executing signing
+        shell: powershell
+        run: |
+          $file = (Resolve-Path 'scripts/setup-signing.ps1').Path
+          $tokens = $null
+          $errors = $null
+          $null = [System.Management.Automation.Language.Parser]::ParseFile($file, [ref]$tokens, [ref]$errors)
+          if ($errors.Count -gt 0) {
+              throw "Windows PowerShell 5.1 syntax errors: $($errors -join ' | ')"
+          }
+          Write-Host 'PASS: Windows PowerShell 5.1 syntax'
+      - name: Check PowerShell 7 syntax and security guardrails without executing signing
+        shell: pwsh
+        run: |
+          $path = (Resolve-Path 'scripts/setup-signing.ps1').Path
+          $tokens = $null
+          $errors = $null
+          $null = [System.Management.Automation.Language.Parser]::ParseFile($path, [ref]$tokens, [ref]$errors)
+          if ($errors.Count -gt 0) {
+              throw "PowerShell signing script has syntax errors: $($errors -join ' | ')"
+          }
+          $source = [System.IO.File]::ReadAllText($path)
+          $expected = @('GAMING_AI_KEYSTORE_BASE64',
+              'GAMING_AI_RELEASE_STORE_PASSWORD',
+              'GAMING_AI_RELEASE_KEY_ALIAS',
+              'GAMING_AI_RELEASE_KEY_PASSWORD',
+              'RedirectStandardInput',
+              'LOCALAPPDATA',
+              'ResumeWithExistingSecrets')
+          foreach ($item in $expected) {
+              if (-not $source.Contains($item)) { throw "Missing signing guardrail: $item" }
+          }
+          if ($source -match '(?im)\bgh\s+secret\s+set\b.*(--body|\s-b\s)') {
+              throw 'Signing values must never appear in CLI arguments.'
+          }
+          Write-Host 'PASS: Signing wizard parses; four secrets and safe standard-input upload present.'
+          Write-Host 'This job does NOT generate a keystore, upload secrets or trigger a release.'
