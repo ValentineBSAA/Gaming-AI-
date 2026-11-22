@@ -26,7 +26,7 @@ function Plain([Security.SecureString]$Secret) {
 function Private-Command([string]$Executable, [string]$Arguments,
                          [AllowNull()][string]$Stdin,
                          [AllowNull()][string]$KeyPassword) {
-    $start = New-Object Diagnostics.ProcessStartInfo
+    $start = New-Object System.Diagnostics.ProcessStartInfo
     $start.FileName = $Executable
     $start.Arguments = $Arguments
     $start.UseShellExecute = $false
@@ -37,7 +37,7 @@ function Private-Command([string]$Executable, [string]$Arguments,
     if ($null -ne $KeyPassword) {
         $start.EnvironmentVariables['GAMING_AI_LOCAL_SIGNING_PASSWORD'] = $KeyPassword
     }
-    $process = New-Object Diagnostics.Process
+    $process = New-Object System.Diagnostics.Process
     $process.StartInfo = $start
     try {
         if (-not $process.Start()) { throw 'Unable to start required executable.' }
